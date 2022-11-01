@@ -1,13 +1,13 @@
 --- dwm.c
 +++ dwm.c
-@@ -730,8 +730,9 @@ drawbar(Monitor *m)
+@@ -707,7 +598,9 @@ drawbar(Monitor *m)
  
- 	if ((w = m->ww - sw - x) > bh) {
- 		if (m->sel) {
-+			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
- 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
--			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
-+			drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
- 			if (m->sel->isfloating)
- 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
- 		} else {
+ 	/* draw status first so it can be overdrawn by tags later */
+ 	if (m == selmon) { /* status is only drawn on selected monitor */
+-		tw = m->ww - drawstatusbar(m, bh, stext);
++		drw_setscheme(drw, scheme[SchemeNorm]);
++		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
++		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
+ 	}
+ 
+ 	for (c = m->clients; c; c = c->next) {
