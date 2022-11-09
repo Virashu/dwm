@@ -58,6 +58,8 @@ static const Layout layouts[] = {
 static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
 static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%",  NULL};
 static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
+static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
+static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
 
 /* key definitions */
 #define MODKEY Mod4Mask
@@ -73,8 +75,8 @@ static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggl
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
-static const char *termcmd[]  = { "st", NULL };
-static const char *alttermcmd[] = { "konsole", NULL };
+static const char *termcmd[]  = { "alacritty", NULL };
+static const char *alttermcmd[] = { "st", NULL };
 
 ResourcePref resources[] = {
 		{ "font",               STRING,  &font },
@@ -137,6 +139,8 @@ static Key keys[] = {
 	{ 0, 				XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
 	{ 0, 				XF86XK_AudioMute, spawn, {.v = mutevol } },
 	{ MODKEY, 			XK_F1, spawn, {.v = mutevol} },
+	{ 0,				XF86XK_MonBrightnessUp,	spawn,	{.v = light_up} },
+	{ 0,				XF86XK_MonBrightnessDown, spawn, {.v = light_down} },
 };
 
 /* button definitions */
