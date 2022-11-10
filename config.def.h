@@ -1,23 +1,26 @@
+#include <X11/XF86keysym.h>
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
-static const unsigned int gappx     = 5;        /* gaps between windows */
-static const unsigned int snap      = 32;       /* snap pixel */
-static const int showbar            = 1;        /* 0 means no bar */
-static const int topbar             = 1;        /* 0 means bottom bar */
-static const int vertpad            = 10;       /* vertical padding of bar */
-static const int sidepad            = 10;       /* horizontal padding of bar */
-static const char fonts[]          = "monospace:size=10";
-static const char *fonts[] 	= { font };
-static const char dmenufont[]       = "monospace:size=10";
-static const char normbgcolor[]       = "#222222";
-static const char normbordercolor[]       = "#444444";
-static const char normfgcolor[]       = "#bbbbbb";
-static const char selfgcolor[]       = "#eeeeee";
-static const char selbordercolor[]        = "#005577";
-static const char selbgcolor[] 		= "#005577";
-static const char *colors[][3]      = {
+static  unsigned int borderpx  = 1;        /* border pixel of windows */
+static  unsigned int gappx     = 8;        /* gaps between windows */
+static  unsigned int snap      = 32;       /* snap pixel */
+static  int showbar            = 1;        /* 0 means no bar */
+static  int topbar             = 1;        /* 0 means bottom bar */
+static  int vertpad            = 10;       /* vertical padding of bar */
+static  int sidepad            = 10;       /* horizontal padding of bar */
+static  int vertpadbar	= 4;
+static  int horizpadbar	= 4;
+static char font[] 				= "monospace:size=10";
+static const char *fonts[]          = { font };
+static char dmenufont[]       = "monospace:size=10";
+static char normbgcolor[]       = "#222222";
+static char normbordercolor[]       = "#444444";
+static char normfgcolor[]       = "#bbbbbb";
+static char selfgcolor[]       = "#eeeeee";
+static char selbordercolor[]        = "#f79921";
+static char selbgcolor[]        = "#f79921";
+static char *colors[][3]      = {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { normfgcolor, normbgcolor, normbordercolor },
 	[SchemeSel]  = { selfgcolor, selbgcolor,  selbordercolor  },
@@ -34,12 +37,13 @@ static const Rule rules[] = {
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
 	{ "firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	{ "telegram-desktop", NULL,	  NULL,       1 << 2,	    0,		 -1 },
 };
 
 /* layout(s) */
-static float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
-static int nmaster     = 1;    /* number of clients in master area */
-static int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
+static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
+static const int nmaster     = 1;    /* number of clients in master area */
+static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
 static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
 
 static const Layout layouts[] = {
@@ -49,8 +53,11 @@ static const Layout layouts[] = {
 	{ "[M]",      monocle },
 };
 
+/* audio control commands*/
+
+
 /* key definitions */
-#define MODKEY Mod1Mask
+#define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -62,12 +69,23 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbordercolor, "-sf", selfgcolor, NULL };
-static const char *termcmd[]  = { "st", NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
+static const char *termcmd[]  = { "alacritty", NULL };
+static const char *alttermcmd[] = { "st", NULL };
 
-/*
- * Xresources preferences to load at startup
- */
+static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
+static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%",  NULL};
+static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
+
+static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
+static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
+
+#define DWMPRINT 0x0000ff61
+
+static const char *scrotcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", NULL};
+static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--focused", NULL };
+static const char *scrotselcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", "--select", NULL};
+
 ResourcePref resources[] = {
 		{ "font",               STRING,  &font },
 		{ "dmenufont",          STRING,  &dmenufont },
@@ -90,6 +108,7 @@ static Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY|ShiftMask|ControlMask,	XK_Return, spawn, 	{.v = alttermcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -107,8 +126,10 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
-	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
-	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+	//{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+	//{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+	{ MODKEY,			XK_comma,  shiftview,	   {.i = -1 } },
+	{ MODKEY,			XK_period,  shiftview,	   {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	{ MODKEY,                       XK_minus,  setgaps,        {.i = -1 } },
@@ -124,6 +145,16 @@ static Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ 0, 				XF86XK_AudioLowerVolume, spawn, {.v = downvol } },
+	{ 0, 				XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
+	{ 0, 				XF86XK_AudioMute, spawn, {.v = mutevol } },
+	{ MODKEY, 			XK_F1, spawn, {.v = mutevol} },
+	{ 0,				XF86XK_MonBrightnessUp,	spawn,	{.v = light_up} },
+	{ 0,				XF86XK_MonBrightnessDown, spawn, {.v = light_down} },
+	{ MODKEY|ShiftMask,		XK_s,      spawn,	{.v = scrotcmd} },
+	//{ MODKEY|ShiftMask|ControlMask,XK_s,spawn,{.v = scrotfoccmd} },
+	//{ MODKEY|ShiftMask|ControlMask,XK_s,spawn,SHCMD("sleep 1s;scrot --select") },
+	{ MODKEY|ShiftMask|ControlMask,	XK_s,      spawn,	    { .v = scrotselcmd } },
 };
 
 /* button definitions */

@@ -37,6 +37,7 @@ static const Rule rules[] = {
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
 	{ "firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	{ "telegram-desktop", NULL,	  NULL,       1 << 2,	    0,		 -1 },
 };
 
 /* layout(s) */
@@ -54,13 +55,6 @@ static const Layout layouts[] = {
 
 /* audio control commands*/
 
-static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
-static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%",  NULL};
-static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
-static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
-static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
-static const char *scrotcmd[] = { "/usr/bin/scrot", "-t", "25", NULL};
-static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--fullscreen", NULL };
 
 /* key definitions */
 #define MODKEY Mod4Mask
@@ -78,6 +72,19 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
 static const char *termcmd[]  = { "alacritty", NULL };
 static const char *alttermcmd[] = { "st", NULL };
+
+static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
+static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%",  NULL};
+static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
+
+static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
+static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
+
+#define DWMPRINT 0x0000ff61
+
+static const char *scrotcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", NULL};
+static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--focused", NULL };
+static const char *scrotselcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", "--select", NULL};
 
 ResourcePref resources[] = {
 		{ "font",               STRING,  &font },
@@ -144,9 +151,10 @@ static Key keys[] = {
 	{ MODKEY, 			XK_F1, spawn, {.v = mutevol} },
 	{ 0,				XF86XK_MonBrightnessUp,	spawn,	{.v = light_up} },
 	{ 0,				XF86XK_MonBrightnessDown, spawn, {.v = light_down} },
-	{ 0,				XK_Print,	spawn,	{.v = scrotcmd} },
-	{ ShiftMask,			XK_Print,	spawn,	{.v = scrotfoccmd} },
-	{ ControlMask,			XK_Print,	spawn,	SHCMD("sleep 1s;scrot --select") },
+	{ MODKEY|ShiftMask,		XK_s,      spawn,	{.v = scrotcmd} },
+	//{ MODKEY|ShiftMask|ControlMask,XK_s,spawn,{.v = scrotfoccmd} },
+	//{ MODKEY|ShiftMask|ControlMask,XK_s,spawn,SHCMD("sleep 1s;scrot --select") },
+	{ MODKEY|ShiftMask|ControlMask,	XK_s,      spawn,	    { .v = scrotselcmd } },
 };
 
 /* button definitions */
@@ -165,10 +173,4 @@ static Button buttons[] = {
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 };
-
-
-
-
-
-
 
