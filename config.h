@@ -1,5 +1,4 @@
 #include <X11/XF86keysym.h>
-
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
@@ -60,6 +59,8 @@ static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%
 static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
 static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
 static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
+static const char *scrotcmd[] = { "/usr/bin/scrot", "-t", "25", NULL};
+static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--fullscreen", NULL };
 
 /* key definitions */
 #define MODKEY Mod4Mask
@@ -118,8 +119,10 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
-	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
-	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+	//{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+	//{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+	{ MODKEY,			XK_comma,  shiftview,	   {.i = -1 } },
+	{ MODKEY,			XK_period,  shiftview,	   {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	{ MODKEY,                       XK_minus,  setgaps,        {.i = -1 } },
@@ -141,6 +144,9 @@ static Key keys[] = {
 	{ MODKEY, 			XK_F1, spawn, {.v = mutevol} },
 	{ 0,				XF86XK_MonBrightnessUp,	spawn,	{.v = light_up} },
 	{ 0,				XF86XK_MonBrightnessDown, spawn, {.v = light_down} },
+	{ 0,				XK_Print,	spawn,	{.v = scrotcmd} },
+	{ ShiftMask,			XK_Print,	spawn,	{.v = scrotfoccmd} },
+	{ ControlMask,			XK_Print,	spawn,	SHCMD("sleep 1s;scrot --select") },
 };
 
 /* button definitions */
