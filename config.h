@@ -2,15 +2,15 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static  unsigned int borderpx  = 1;        /* border pixel of windows */
-static  unsigned int gappx     = 8;        /* gaps between windows */
+static  unsigned int borderpx  = 0;        /* border pixel of windows */
+static  unsigned int gappx     = 12;        /* gaps between windows */
 static  unsigned int snap      = 32;       /* snap pixel */
 static  int showbar            = 1;        /* 0 means no bar */
 static  int topbar             = 1;        /* 0 means bottom bar */
-static  int vertpad            = 10;       /* vertical padding of bar */
-static  int sidepad            = 10;       /* horizontal padding of bar */
-static  int vertpadbar	= 4;
-static  int horizpadbar	= 4;
+static  int vertpad            = 12;       /* vertical padding of bar */
+static  int sidepad            = 12;       /* horizontal padding of bar */
+static  int vertpadbar	= 6;
+static  int horizpadbar	= 6;
 static char font[] 				= "monospace:size=10";
 static const char *fonts[]          = { font };
 static char dmenufont[]       = "monospace:size=10";
@@ -37,7 +37,7 @@ static const Rule rules[] = {
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
 	{ "firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
-	{ "telegram-desktop", NULL,	  NULL,       1 << 2,	    0,		 -1 },
+	{ "telegram-desktop", NULL,	  "telegram-desktop",       1 << 2,	    0,		 -1 },
 };
 
 /* layout(s) */
