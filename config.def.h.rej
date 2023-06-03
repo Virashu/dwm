@@ -1,15 +1,16 @@
---- config.def.h
-+++ config.def.h
-@@ -26,9 +26,9 @@ static const Rule rules[] = {
- 	 *	WM_CLASS(STRING) = instance, class
- 	 *	WM_NAME(STRING) = title
- 	 */
--	/* class      instance    title       tags mask     isfloating   monitor */
--	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
--	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
-+	/* class      instance    title       tags mask     iscentered   isfloating   monitor */
-+	{ "Gimp",     NULL,       NULL,       0,            0,           1,           -1 },
-+	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,           -1 },
- };
+--- config.def.h	Tue Dec 04 21:54:44 2012 +0200
++++ config.def.h	Tue Dec 04 21:54:44 2012 +0200
+@@ -54,6 +54,8 @@
+ static const char *termcmd[]  = { "urxvtc", NULL };
+ static const char *filemancmd[]  = { "thunar", NULL };
  
- /* layout(s) */
++#include "selfrestart.c"
++
+ static Key keys[] = {
+ 	/* modifier                     key        function        argument */
+ 	{ MODKEY,                       XK_r,      spawn,          {.v = dmenucmd } },
+@@ -109,4 +112,3 @@
+ 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
+ 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+ };
+-
