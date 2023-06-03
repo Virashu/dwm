@@ -7,14 +7,17 @@ static unsigned int borderpx                = 1;        /* border pixel of windo
 static const Gap default_gap                = {.isgap = 1, .realgap = 10, .gappx = 10};
 static const unsigned int snap              = 32;       /* snap pixel */
 static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
-static const unsigned int systrayonleft  = 0;   /* 0: systray in the right corner, >0: systray on left of status text */
+static const unsigned int systrayonleft  = 2;   /* 0: systray in the right corner, >0: systray on left of status text */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
 static const int showsystray        = 1;        /* 0 means no systray */
 static int showbar            				= 1;     /* 0 means no bar */
 static int topbar             				= 1;     /* 0 means bottom bar */
+static const int horizpadbar = 2;
+static const int vertpadbar  = 12;
 static int vertpad		 					= 4;
 static int sidepad 							= 4;
+static const int blockpadding = 0;
 static char font[]			 				= "MesloLGS NF:size=10";
 //static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font" };
 //static char font[]			 				= "FiraCode Nerd Font:size=10";
@@ -35,7 +38,10 @@ static char *colors[][3]      				= {
 /* tagging */
 //static const char *tags[] = { "", "", "﬏", "", "", "" };
 //static const char *tags[] = { "一", "二", "三", "四", "五", "六" };
-static const char *tags[] = { "", "", "三", "四", "五", "六" };
+
+static const char *tags[] = { "", "", "", "", "", "" };
+static const char *alttags[] = { "", "", "", "", "", "" };
+
 static const char buttonbar[]       = "󰍜";
 
 static const Rule rules[] = {
@@ -82,6 +88,15 @@ static const char *termcmd[]  = { "kitty", NULL };
 static const char *alttermcmd[] = { "st", NULL };
 static const char *browsercmd[] = { "firefox", NULL };
 static const char *fmcmd[] = { "nautilus", NULL };
+
+static const StatusCmd statuscmds[] = {
+	{ "notify-send Mouse$BUTTON", 1 },
+	{ "bash /home/virashu/scripts/volume_brightness.sh notify_volume", 2 },
+	{ "bash /home/virashu/scripts/volume_brightness.sh notify_brightness", 3 },
+	{ "bash /home/virashu/scripts/volume_brightness.sh notify_battery", 4 },
+};
+
+static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 /* OLD
 static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
@@ -218,7 +233,9 @@ static const Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+	{ ClkStatusText,        0,              Button1,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button2,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button3,        spawn,          {.v = statuscmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },

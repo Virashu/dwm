@@ -189,6 +189,11 @@ struct Systray {
 	Client *icons;
 };
 
+typedef struct {
+	const char *cmd;
+	int id;
+} StatusCmd;
+
 /* function declarations */
 static void applyrules(Client *c);
 static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
@@ -303,6 +308,9 @@ static void view_adjacent(const Arg *arg);
 static Systray *systray = NULL;
 static const char broken[] = "broken";
 static char stext[1024];
+static int statusw;
+static int statuscmdn;
+static char lastbutton[] = "-";
 static int screen;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
@@ -498,7 +506,8 @@ attachstack(Client *c)
 void
 buttonpress(XEvent *e)
 {
-	unsigned int i, x, click;
+	unsigned int i, x, click, occ;
+	unsigned int sw;
 	Arg arg = {0};
 	Client *c;
 	Monitor *m;
@@ -511,22 +520,75 @@ buttonpress(XEvent *e)
 		selmon = m;
 		focus(NULL);
 	}
+
+	if (systrayonleft)
+		sw = 0;
+	else
+		sw = getsystraywidth();
+
 	if (ev->window == selmon->barwin) {
-		i = x = 0;
+		i = x = occ = 0;
+		/* Bitmask of occupied tags */
+		for (c = m->clients; c; c = c->next)
+			occ |= c->tags;
+
 		x += TEXTW(buttonbar);
 		if(ev->x < x) {
 			click = ClkButton;
 		} else {
 			do
-				x += TEXTW(tags[i]);
+				x += TEXTW(occ & 1 << i ? alttags[i] : tags[i]);
 			while (ev->x >= x && ++i < LENGTH(tags));
 			if (i < LENGTH(tags)) {
 				click = ClkTagBar;
 				arg.ui = 1 << i;
 			} else if (ev->x < x + TEXTW(selmon->ltsymbol))
 				click = ClkLtSymbol;
-			else if (ev->x > selmon->ww - (int)TEXTW(stext) - getsystraywidth())
-				click = ClkStatusText;
+			/*
+-		else if (ev->x > selmon->ww - (int)TEXTW(stext))
++		else if (ev->x > selmon->ww - statusw) {
++			char *text, *s, ch;
++			*lastbutton = '0' + ev->button;
++
++			x = selmon->ww - statusw;
+ 			click = ClkStatusText;
++
++			statuscmdn = 0;
++			for (text = s = stext; *s && x <= ev->x; s++) {
++				if ((unsigned char)(*s) < ' ') {
++					ch = *s;
++					*s = '\0';
++					x += TEXTW(text) - lrpad;
++					*s = ch;
++					text = s + 1;
++					if (x >= ev->x)
++						break;
++					statuscmdn = ch;
++				}
++			}
++		}
+*/
+			else if (ev->x > selmon->ww - statusw - sw) {
+				char *text, *s, ch;
+				*lastbutton = '0' + ev->button;
+
+				x = selmon->ww - statusw;
+ 				click = ClkStatusText;
+
+				statuscmdn = 0;
+				for (text = s = stext; *s && x <= ev->x; s++) {
+					if ((unsigned char)(*s) < ' ') {
+						ch = *s;
+						*s = '\0';
+						x += TEXTW(text) - lrpad;
+						*s = ch;
+						text = s + 1;
+						if (x >= ev->x)
+							break;
+						statuscmdn = ch;
+					}
+				}
+			}
 			else
 				click = ClkWinTitle;
 		}
@@ -864,7 +926,7 @@ dirtomon(int dir)
 
 int
 drawstatusbar(Monitor *m, int bh, char* stext) {
-	int ret, i, w, x, len;
+	int ret, i, j, w, x, len;
 	short isCode = 0;
 	char *text;
 	char *p;
@@ -873,7 +935,12 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	if (!(text = (char*) malloc(sizeof(char)*len)))
 		die("malloc");
 	p = text;
-	memcpy(text, stext, len);
+
+	i = -1, j = 0;
+	while (stext[++i])
+		if ((unsigned char)stext[i] >= ' ')
+			text[j++] = stext[i];
+	text[j] = '\0';
 
 	/* compute width of the status text */
 	w = 0;
@@ -899,16 +966,34 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	else
 		isCode = 0;
 	text = p;
-
-	w += 2; /* 1px padding on both sides */
+	/*
+ 	* -	w += 2; 
+	+	w += horizpadbar;
+	*/
+	w += horizpadbar; /* 1px padding on both sides */
 	ret = m->ww - w;
-	x = m->ww - w - getsystraywidth();
+	if (!systrayonleft)
+		x = m->ww - w - getsystraywidth();
+	else
+		x = m->ww - w;
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
 	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 	drw_rect(drw, x, 0, w, bh, 1, 1);
-	x++;
+	/* 
+-	x++;
++	x += horizpadbar / 2;
+*/
+	x += horizpadbar / 2;
+
+	unsigned int sssy, ssey;
+	if (blockpadding) {
+		sssy = vertpadbar / 2;
+		ssey = vertpadbar;
+	} else {
+		sssy = ssey = 0;
+	}
 
 	/* process status text */
 	i = -1;
@@ -918,7 +1003,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
 			text[i] = '\0';
 			w = TEXTW(text) - lrpad;
-			drw_text(drw, x, 0, w, bh, 0, text, 0);
+			drw_text(drw, x, sssy, w, bh - ssey, 0, text, 0);
 
 			x += w;
 
@@ -948,7 +1033,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 					while (text[++i] != ',');
 					int rh = atoi(text + ++i);
 
-					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
+					drw_rect(drw, rx + x, ry + sssy, rw, rh, 1, 0);
 				} else if (text[i] == 'f') {
 					x += atoi(text + ++i);
 				}
@@ -962,7 +1047,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
 	if (!isCode) {
 		w = TEXTW(text) - lrpad;
-		drw_text(drw, x, 0, w, bh, 0, text, 0);
+		drw_text(drw, x, sssy, w, bh - ssey, 0, text, 0);
 	}
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
@@ -978,6 +1063,7 @@ drawbar(Monitor *m)
 	int boxs = drw->fonts->h / 9;
 	int boxw = drw->fonts->h / 6 + 2;
 	unsigned int i, occ = 0, urg = 0;
+	const char *tagtext;
 	Client *c;
 
 	if (!m->showbar)
@@ -991,7 +1077,7 @@ drawbar(Monitor *m)
 		//drw_setscheme(drw, scheme[SchemeNorm]);
 		//tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
 		//drw_text(drw, m->ww - tw - 2 * sp, 0, tw, bh, 0, stext, 0);
-		tw = m->ww - drawstatusbar(m, bh, stext);
+		tw = statusw = m->ww - drawstatusbar(m, bh, stext);
 	}
 	resizebarwin(m);
 
@@ -1005,13 +1091,10 @@ drawbar(Monitor *m)
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, buttonbar, 0);
 	for (i = 0; i < LENGTH(tags); i++) {
-		w = TEXTW(tags[i]);
-		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
-		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
-		if (occ & 1 << i)
-			drw_rect(drw, x + boxs, boxs, boxw, boxw,
-				m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-				urg & 1 << i);
+		tagtext = occ & 1 << i ? alttags[i] : tags[i];
+		w = TEXTW(tagtext);
+ 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+		drw_text(drw, x, 0, w, bh, lrpad / 2, tagtext, urg & 1 << i);
 		x += w;
 	}
 	w = TEXTW(m->ltsymbol);
@@ -1973,7 +2056,7 @@ setup(void)
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
-	bh = drw->fonts->h + 2;
+	bh = drw->fonts->h + vertpadbar;
 	updategeom();
 	sp = sidepad;
 	vp = (topbar == 1) ? vertpad : - vertpad;
@@ -2128,6 +2211,17 @@ spawn(const Arg *arg)
 	if (fork() == 0) {
 		if (dpy)
 			close(ConnectionNumber(dpy));
+		if (arg->v == statuscmd) {
+			for (int i = 0; i < LENGTH(statuscmds); i++) {
+				if (statuscmdn == statuscmds[i].id) {
+					statuscmd[2] = statuscmds[i].cmd;
+					setenv("BUTTON", lastbutton, 1);
+					break;
+				}
+			}
+			if (!statuscmd[2])
+				exit(EXIT_SUCCESS);
+		}
 		setsid();
 		execvp(((char **)arg->v)[0], (char **)arg->v);
 		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
@@ -2521,8 +2615,23 @@ updatesizehints(Client *c)
 void
 updatestatus(void)
 {
-	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
+	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext))) {
 		strcpy(stext, "dwm-"VERSION);
+		statusw = TEXTW(stext) - lrpad + 2;
+	} else {
+		char *text, *s, ch;
+		statusw = 0;
+		for (text = s = stext; *s; s++) {
+			if ((unsigned char)(*s) < ' ') {
+				ch = *s;
+				*s = '\0';
+				statusw += TEXTW(text) - lrpad;
+				*s = ch;
+				text = s + 1;
+			}
+		}
+		statusw += TEXTW(text) - lrpad + 2;
+	}
 	drawbar(selmon);
 	updatesystray();
 }
@@ -2587,13 +2696,16 @@ updatesystray(void)
 	Client *i;
 	Monitor *m = systraytomon(NULL);
 	unsigned int x = m->mx + m->mw;
-	unsigned int sw = TEXTW(stext) - lrpad + systrayspacing;
+	//unsigned int sw = TEXTW(stext) - lrpad + systrayspacing;
+	unsigned int sw = statusw - lrpad + systrayspacing + 32;
 	unsigned int w = 1;
 
 	if (!showsystray)
 		return;
 	if (systrayonleft)
 		x -= sw + lrpad / 2;
+	if (!systrayonleft)
+		x -= sp;
 	if (!systray) {
 		/* init systray */
 		if (!(systray = (Systray *)calloc(1, sizeof(Systray))))

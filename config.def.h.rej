@@ -1,16 +1,11 @@
---- config.def.h	Tue Dec 04 21:54:44 2012 +0200
-+++ config.def.h	Tue Dec 04 21:54:44 2012 +0200
-@@ -54,6 +54,8 @@
- static const char *termcmd[]  = { "urxvtc", NULL };
- static const char *filemancmd[]  = { "thunar", NULL };
- 
-+#include "selfrestart.c"
-+
- static Key keys[] = {
- 	/* modifier                     key        function        argument */
- 	{ MODKEY,                       XK_r,      spawn,          {.v = dmenucmd } },
-@@ -109,4 +112,3 @@
- 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
- 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
- };
--
+--- config.def.h
++++ config.def.h
+@@ -7,6 +7,8 @@ static const unsigned int gappx     = 10;       /* default gap between windows i
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const int horizpadbar        = 2;        /* horizontal padding for statusbar */
++static const int vertpadbar         = 0;        /* vertical padding for statusbar */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";

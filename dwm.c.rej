@@ -1,13 +1,19 @@
 --- dwm.c
 +++ dwm.c
-@@ -730,8 +730,9 @@ drawbar(Monitor *m)
+@@ -740,14 +740,14 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 		isCode = 0;
+ 	text = p;
  
- 	if ((w = m->ww - sw - x) > bh) {
- 		if (m->sel) {
-+			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
- 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
--			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
-+			drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
- 			if (m->sel->isfloating)
- 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
- 		} else {
+-	w += 2; /* 1px padding on both sides */
++	w += horizpadbar;
+ 	ret = x = m->ww - w;
+ 
+ 	drw_setscheme(drw, scheme[LENGTH(colors)]);
+ 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+ 	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+ 	drw_rect(drw, x, 0, w, bh, 1, 1);
+-	x++;
++	x += horizpadbar / 2;
+ 
+ 	/* process status text */
+ 	i = -1;
