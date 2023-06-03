@@ -506,12 +506,14 @@ attachstack(Client *c)
 void
 buttonpress(XEvent *e)
 {
-	unsigned int i, x, click, occ;
-	unsigned int sw;
+	unsigned int i, x, click, occ, xc;
+	int padding = 0;
 	Arg arg = {0};
 	Client *c;
 	Monitor *m;
 	XButtonPressedEvent *ev = &e->xbutton;
+
+	padding -= sp * 2;
 
 	click = ClkRootWin;
 	/* focus monitor if necessary */
@@ -520,11 +522,9 @@ buttonpress(XEvent *e)
 		selmon = m;
 		focus(NULL);
 	}
-
-	if (systrayonleft)
-		sw = 0;
-	else
-		sw = getsystraywidth();
+	
+	if (showsystray && selmon == systraytomon(selmon))
+		padding -= getsystraywidth();
 
 	if (ev->window == selmon->barwin) {
 		i = x = occ = 0;
@@ -544,48 +544,48 @@ buttonpress(XEvent *e)
 				arg.ui = 1 << i;
 			} else if (ev->x < x + TEXTW(selmon->ltsymbol))
 				click = ClkLtSymbol;
-			/*
--		else if (ev->x > selmon->ww - (int)TEXTW(stext))
-+		else if (ev->x > selmon->ww - statusw) {
-+			char *text, *s, ch;
-+			*lastbutton = '0' + ev->button;
-+
-+			x = selmon->ww - statusw;
- 			click = ClkStatusText;
-+
-+			statuscmdn = 0;
-+			for (text = s = stext; *s && x <= ev->x; s++) {
-+				if ((unsigned char)(*s) < ' ') {
-+					ch = *s;
-+					*s = '\0';
-+					x += TEXTW(text) - lrpad;
-+					*s = ch;
-+					text = s + 1;
-+					if (x >= ev->x)
-+						break;
-+					statuscmdn = ch;
-+				}
-+			}
-+		}
-*/
-			else if (ev->x > selmon->ww - statusw - sw) {
-				char *text, *s, ch;
+			else if (ev->x > selmon->ww - statusw + padding) {
+ 				// click = ClkStatusText;
+
+				// x = selmon->ww - statusw + padding;
+				// // x += lrpad / 2;
+
+				// char *text, *s, ch;
+				// *lastbutton = '0' + ev->button;
+
+				// statuscmdn = 0;
+				// for (text = s = stext; *s && x <= ev->x; s++) {
+				// 	if ((unsigned char)(*s) < ' ') {
+				// 		ch = *s;
+				// 		*s = '\0';
+				// 		x += TEXTW(text) - lrpad;
+				// 		*s = ch;
+				// 		text = s + 1;
+				// 		if (x >= ev->x)
+				// 			break;
+				// 		statuscmdn = ch;
+				// 	}
+				// }
+				click = ClkStatusText;
+				xc = selmon->ww - statusw + padding;
+				xc += lrpad / 2;
+				char *text = stext;
+				int i = -1;
+				char ch;
 				*lastbutton = '0' + ev->button;
-
-				x = selmon->ww - statusw;
- 				click = ClkStatusText;
-
 				statuscmdn = 0;
-				for (text = s = stext; *s && x <= ev->x; s++) {
-					if ((unsigned char)(*s) < ' ') {
-						ch = *s;
-						*s = '\0';
-						x += TEXTW(text) - lrpad;
-						*s = ch;
-						text = s + 1;
-						if (x >= ev->x)
+				while (text[++i]) {
+					if ((unsigned char)text[i] < ' ') {
+						ch = text[i];
+						text[i] = '\0';
+						xc += status2dtextlength(text);
+						text[i] = ch;
+						text += i+1;
+						i = -1;
+						if (xc >= ev->x)
 							break;
-						statuscmdn = ch;
+						if (ch <= LENGTH(statuscmds))
+							statuscmdn = ch;
 					}
 				}
 			}
@@ -602,6 +602,56 @@ buttonpress(XEvent *e)
 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
 			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+}
+
+int
+status2dtextlength(char* stext)
+{
+	int i, w, len;
+	short isCode = 0;
+	char *text;
+
+	len = strlen(stext) + 1;
+	if (!(text = (char*) malloc(sizeof(char)*len)))
+		die("malloc");
+
+	copyvalidchars(text, stext);
+
+	/* compute width of the status text */
+	w = 0;
+	i = -1;
+	while (text[++i]) {
+		if (text[i] == '^') {
+			if (!isCode) {
+				isCode = 1;
+				text[i] = '\0';
+				w += TEXTW(text) - lrpad;
+				text[i] = '^';
+				if (text[++i] == 'f')
+					w += atoi(text + ++i);
+			} else {
+				isCode = 0;
+				text = text + i + 1;
+				i = -1;
+			}
+		}
+	}
+	if (!isCode)
+		w += TEXTW(text) - lrpad;
+	return w;
+}
+
+void
+copyvalidchars(char *text, char *rawtext)
+{
+	int i = -1, j = 0;
+
+	while (rawtext[++i]) {
+		if ((unsigned char)rawtext[i] >= ' ') {
+			text[j++] = rawtext[i];
+		}
+	}
+	text[j] = '\0';
 }
 
 void
