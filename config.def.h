@@ -5,23 +5,24 @@
 /* appearance */
 static unsigned int borderpx                = 1;        /* border pixel of windows */
 static const Gap default_gap                = {.isgap = 1, .realgap = 10, .gappx = 10};
-static const unsigned int snap              = 32;       /* snap pixel */
+static const unsigned int snap              = 16;       /* snap pixel */
 static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayonleft  = 2;   /* 0: systray in the right corner, >0: systray on left of status text */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
+static const unsigned int systraypadding = 0; /* pixels */
 static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
 static const int showsystray        = 1;        /* 0 means no systray */
 static int showbar            				= 1;     /* 0 means no bar */
 static int topbar             				= 1;     /* 0 means bottom bar */
-static const int horizpadbar = 2;
-static const int vertpadbar  = 12;
+static const int horizpadbar = 0;
+static const int vertpadbar  = 24;
 static int vertpad		 					= 4;
 static int sidepad 							= 4;
-static const int blockpadding = 0;
+static const int blockpadding = 0; /* 0 or 1 */
 static char font[]			 				= "MesloLGS NF:size=10";
 //static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font" };
 //static char font[]			 				= "FiraCode Nerd Font:size=10";
-static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho" };
+static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho", "Noto Sans SignWriting", "Noto Color Emoji:size=6" }; // "Noto Color Emoji" for emoji support
 static const char dmenufont[]       		= "monospace:size=10";
 static char normbgcolor[]       		 	= "#222222";
 static char normbordercolor[]       		= "#444444";
@@ -90,10 +91,12 @@ static const char *browsercmd[] = { "firefox", NULL };
 static const char *fmcmd[] = { "nautilus", NULL };
 
 static const StatusCmd statuscmds[] = {
-	{ "notify-send Mouse$BUTTON", 1 },
+	{ "notify-send Mouse$BUTTON", 11 },
+	{ "bash /home/virashu/scripts/toggle_setxkb_layout.sh", 1 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_volume", 2 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_brightness", 3 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_battery", 4 },
+	{ "bash /home/virashu/scripts/volume_brightness.sh notify_time", 5 },
 };
 
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
@@ -139,6 +142,11 @@ static const char *scrotselcmd[] = { "/bin/bash", "/home/virashu/scripts/screens
 static const char *kblayout_us[] = { "setxkbmap", "us", NULL };
 static const char *kblayout_ru[] = { "setxkbmap", "ru", NULL };
 static const char *kblayout_jp[] = { "setxkbmap", "jp", NULL };
+static const char *kblayout_toggle[] = { "bash", "/home/virashu/scripts/toggle_setxkb_layout.sh", NULL };
+
+static const char *killdwm[] = { "pkill", "dwm", NULL };
+
+static const char *restartnotification[] = { "bash", "-c", "dunstify -i /usr/share/icons/Papirus-Dark/24x24/actions/vm-restart.svg -t 2000 dwm restarted", NULL };
 
 /*
  * Xresources preferences to load at startup
@@ -206,8 +214,11 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-  { MODKEY|ShiftMask,             XK_r,      self_restart,   {0} },
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+  //{ MODKEY|ShiftMask,             XK_r,      self_restart,   {0} },
+	//{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+  { MODKEY|ShiftMask,             XK_r,      quit,   				 {0} },
+  { MODKEY|ShiftMask,             XK_r,      spawn,   				 {.v = restartnotification} },
+	{ MODKEY|ShiftMask,             XK_q,      spawn,          {.v = killdwm } },
 	{ 0, 				                    XF86XK_AudioLowerVolume, spawn, {.v = downvol } },
 	{ 0, 				                    XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
 	{ 0, 				                    XF86XK_AudioMute, spawn,   {.v = mutevol } },
@@ -221,6 +232,7 @@ static const Key keys[] = {
 	{ Mod1Mask|ShiftMask,           XK_1,      spawn,          { .v = kblayout_us } },
   { Mod1Mask|ShiftMask,           XK_2,      spawn,          { .v = kblayout_ru } },
   { Mod1Mask|ShiftMask,           XK_3,      spawn,          { .v = kblayout_jp } },
+	{ Mod1Mask|ShiftMask,						0,				 spawn,					 { .v = kblayout_toggle } },
 };
 
 /* button definitions */

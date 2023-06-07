@@ -522,8 +522,8 @@ buttonpress(XEvent *e)
 		selmon = m;
 		focus(NULL);
 	}
-	
-	if (showsystray && selmon == systraytomon(selmon))
+	// here (525) was trailing)
+	if (showsystray && selmon == systraytomon(selmon) && !systrayonleft)
 		padding -= getsystraywidth();
 
 	if (ev->window == selmon->barwin) {
@@ -567,8 +567,10 @@ buttonpress(XEvent *e)
 				// 	}
 				// }
 				click = ClkStatusText;
+				//xc = selmon->ww - statusw + padding / 2;
+				//xc = selmon->ww - statusw;
 				xc = selmon->ww - statusw + padding;
-				xc += lrpad / 2;
+				//xc += lrpad / 2;
 				char *text = stext;
 				int i = -1;
 				char ch;
@@ -1016,26 +1018,34 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	else
 		isCode = 0;
 	text = p;
+	//w = status2dtextlength(text);
 	/*
- 	* -	w += 2; 
+ 	* -	w += 2;
 	+	w += horizpadbar;
 	*/
-	w += horizpadbar; /* 1px padding on both sides */
+	//w += horizpadbar; /* 1px padding on both sides */
 	ret = m->ww - w;
-	if (!systrayonleft)
-		x = m->ww - w - getsystraywidth();
-	else
-		x = m->ww - w;
+	//if (!systrayonleft)
+	//	x = m->ww - w - getsystraywidth();
+	//else
+	//	x = m->ww - w;
+
+	int padding = -2 * sp;
+	if (showsystray && !systrayonleft)
+		padding += getsystraywidth();
+
+	x = m->ww - w + padding;
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
 	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 	drw_rect(drw, x, 0, w, bh, 1, 1);
-	/* 
+	/*
 -	x++;
 +	x += horizpadbar / 2;
 */
-	x += horizpadbar / 2;
+	// += -> -=
+	x -= horizpadbar;
 
 	unsigned int sssy, ssey;
 	if (blockpadding) {
@@ -1096,7 +1106,8 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	}
 
 	if (!isCode) {
-		w = TEXTW(text) - lrpad;
+		//w = TEXTW(text) - lrpad;
+		w = status2dtextlength(text) - lrpad;
 		drw_text(drw, x, sssy, w, bh - ssey, 0, text, 0);
 	}
 
@@ -1143,7 +1154,13 @@ drawbar(Monitor *m)
 	for (i = 0; i < LENGTH(tags); i++) {
 		tagtext = occ & 1 << i ? alttags[i] : tags[i];
 		w = TEXTW(tagtext);
- 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+		drw_setscheme(
+			drw,
+			scheme[
+				m->tagset[m->seltags] & 1 << i
+				? (SchemeSel) : SchemeNorm
+			]
+		);
 		drw_text(drw, x, 0, w, bh, lrpad / 2, tagtext, urg & 1 << i);
 		x += w;
 	}
@@ -1295,7 +1312,7 @@ getatomprop(Client *c, Atom prop)
 	Atom da, atom = None;
 
 	/* FIXME getatomprop should return the number of items and a pointer to
-	 * the stored data instead of this workaround */
+   * the stored data instead of this workaround */
 	Atom req = XA_ATOM;
 	if (prop == xatom[XembedInfo])
 		req = xatom[XembedInfo];
@@ -1841,8 +1858,8 @@ resizemouse(const Arg *arg)
 		}
 	} while (ev.type != ButtonRelease);
 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
-		      horizcorner ? (-c->bw) : (c->w + c->bw - 1),
-		      vertcorner ? (-c->bw) : (c->h + c->bw - 1));
+					horizcorner ? (-c->bw) : (c->w + c->bw - 1),
+					vertcorner ? (-c->bw) : (c->h + c->bw - 1));
 	XUngrabPointer(dpy, CurrentTime);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -2196,11 +2213,11 @@ shiftview(const Arg *arg)
 
 	if(arg->i > 0) // left circular shift
 		shifted.ui = (selmon->tagset[selmon->seltags] << arg->i)
-		   | (selmon->tagset[selmon->seltags] >> (LENGTH(tags) - arg->i));
+				| (selmon->tagset[selmon->seltags] >> (LENGTH(tags) - arg->i));
 
 	else // right circular shift
 		shifted.ui = selmon->tagset[selmon->seltags] >> (- arg->i)
-		   | selmon->tagset[selmon->seltags] << (LENGTH(tags) + arg->i);
+				| selmon->tagset[selmon->seltags] << (LENGTH(tags) + arg->i);
 
 	view(&shifted);
 }
@@ -2463,7 +2480,7 @@ unmapnotify(XEvent *e)
 	}
 	else if ((c = wintosystrayicon(ev->window))) {
 		/* KLUDGE! sometimes icons occasionally unmap their windows, but do
-		 * _not_ destroy them. We map those windows back */
+     * _not_ destroy them. We map those windows back */
 		XMapRaised(dpy, c->win);
 		updatesystray();
 	}
@@ -2761,7 +2778,9 @@ updatesystray(void)
 		if (!(systray = (Systray *)calloc(1, sizeof(Systray))))
 			die("fatal: could not malloc() %u bytes\n", sizeof(Systray));
 		// m->by -> m->by + vp
-		systray->win = XCreateSimpleWindow(dpy, root, x, m->by + vp, w, bh, 0, 0, scheme[SchemeSel][ColBg].pixel);
+		/* SEG 0 */
+		// m->by + vp + systraypadding  &  bh -> bh - systraypadding
+		systray->win = XCreateSimpleWindow(dpy, root, x, m->by + vp + systraypadding, w, bh - systraypadding, 0, 0, scheme[SchemeSel][ColBg].pixel);
 		wa.event_mask        = ButtonPressMask | ExposureMask;
 		wa.override_redirect = True;
 		wa.background_pixel  = scheme[SchemeNorm][ColBg].pixel;
@@ -2789,19 +2808,32 @@ updatesystray(void)
 		XMapRaised(dpy, i->win);
 		w += systrayspacing;
 		i->x = w;
+
+		/* SEG 1 */
 		// 0 -> vp
-		XMoveResizeWindow(dpy, i->win, i->x, 0, i->w, i->h);
 		// XMoveResizeWindow(dpy, i->win, i->x, vp, i->w, i->h);
+		// XMoveResizeWindow(dpy, i->win, i->x, 0, i->w, i->h);
+		/* Systray padding */
+		XMoveResizeWindow(dpy, i->win, i->x, systraypadding, i->w, i->h - systraypadding);
+
 		w += i->w;
 		if (i->mon != m)
 			i->mon = m;
 	}
 	w = w ? w + systrayspacing : 1;
 	x -= w;
-	XMoveResizeWindow(dpy, systray->win, x, m->by, w, bh);
+
+	/* SEG 2 */
 	// XMoveResizeWindow(dpy, systray->win, x, m->by + vp, w, bh);
+	// XMoveResizeWindow(dpy, systray->win, x, m->by, w, bh);
+	//XMoveResizeWindow(dpy, systray->win, x, m->by + systraypadding, w, bh - systraypadding);
+
+	/* SEG 3 */
 	wc.x = x; wc.y = m->by + vp; wc.width = w; wc.height = bh;
 	// wc.x = x; wc.y = m->by; wc.width = w; wc.height = bh;
+	/* Systray padding */
+	//wc.x = x; wc.y = m->by + vp + systraypadding; wc.width = w; wc.height = bh - systraypadding;
+	// here (2823) was trailing)
 	wc.stack_mode = Above; wc.sibling = m->barwin;
 	XConfigureWindow(dpy, systray->win, CWX|CWY|CWWidth|CWHeight|CWSibling|CWStackMode, &wc);
 	XMapWindow(dpy, systray->win);
