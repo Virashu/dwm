@@ -3,37 +3,47 @@
 #include <X11/XF86keysym.h>
 #include "selfrestart.c"
 /* appearance */
+static const unsigned int ulinepad	= 5;	/* horizontal padding between the underline and tag */
+static const unsigned int ulinestroke	= 4;	/* thickness / height of the underline */
+static const unsigned int ulinevoffset	= 4;	/* how far above the bottom of the bar the line should appear */
+static const int ulineall                  = 0;	/* 1 to show underline on all tags, 0 for just the active ones */
 static unsigned int borderpx                = 1;        /* border pixel of windows */
 static const Gap default_gap                = {.isgap = 1, .realgap = 10, .gappx = 10};
 static const unsigned int snap              = 16;       /* snap pixel */
-static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
-static const unsigned int systrayonleft  = 2;   /* 0: systray in the right corner, >0: systray on left of status text */
-static const unsigned int systrayspacing = 2;   /* systray spacing */
-static const unsigned int systraypadding = 0; /* pixels */
-static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
-static const int showsystray        = 1;        /* 0 means no systray */
+static const unsigned int systraypinning    = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
+static const unsigned int systrayonleft     = 2;   /* 0: systray in the right corner, >0: systray on left of status text */
+static const unsigned int systrayspacing    = 2;   /* systray spacing */
+static const unsigned int systraypadding    = 0; /* pixels */
+static const int systraypinningfailfirst    = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
+static int showsystray                      = 1;        /* 0 means no systray */
 static int showbar            				= 1;     /* 0 means no bar */
 static int topbar             				= 1;     /* 0 means bottom bar */
-static const int horizpadbar = 0;
-static const int vertpadbar  = 24;
-static int vertpad		 					= 4;
-static int sidepad 							= 4;
-static const int blockpadding = 0; /* 0 or 1 */
-static char font[]			 				= "MesloLGS NF:size=10";
-//static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font" };
+static const int horizpadbar                = 0; // icons from side of bar
+static const int vertpadbar                 = 24; // icons from side of bar
+static int vertpad		 					= 4; // bar from side of screen
+static int sidepad 							= 4; // bar from side of screen
+static const int blockpadding               = 1; /* 0 or 1 */
+// static char font[]			 				= "Fira Code:size=10";
+static char font[]                          = "MesloLGS NF:size=10";
+static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font" };
 //static char font[]			 				= "FiraCode Nerd Font:size=10";
-static const char *fonts[]          		= { font, "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho", "Noto Sans SignWriting", "Noto Color Emoji:size=6" }; // "Noto Color Emoji" for emoji support
-static const char dmenufont[]       		= "monospace:size=10";
+// ***  static const char *fonts[]          		= { font, "MesloLGS NF:size=17", "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho", "Noto Sans SignWriting", "Noto Color Emoji:size=6" }; // "Noto Color Emoji" for emoji support
+//static const char *fonts[]          		= { font, "MesloLGS NF:size=10", "FiraCode Nerd Font", "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho", "Noto Sans SignWriting", "Noto Color Emoji:size=6" }; // "Noto Color Emoji" for emoji support
+//static const char dmenufont[]       		= "monospace:size=10";
+static const char dmenufont[]       		= "MesloLGS NF:size=10";
 static char normbgcolor[]       		 	= "#222222";
 static char normbordercolor[]       		= "#444444";
 static char normfgcolor[]       			= "#bbbbbb";
 static char selfgcolor[]       				= "#eeeeee";
 static char selbgcolor[]        			= "#005577";
 static char selbordercolor[]        		= "#005577";
+static char red[] = "#ff0000";
+static char green[] = "#ff0000";
 static char *colors[][3]      				= {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { normfgcolor, normbgcolor, normbordercolor },
 	[SchemeSel]  = { selfgcolor, selbgcolor,  selbordercolor  },
+	[SchemeTest] = { red, green, normbgcolor},
 };
 
 /* tagging */
@@ -51,8 +61,11 @@ static const Rule rules[] = {
 	 *	WM_NAME(STRING) = title
 	 */
 	/* class      instance    title       tags mask     iscentred   isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            0,		1,           -1 },
-	{ "firefox",  NULL,       NULL,       1 << 5,       0,		0,           -1 },
+	{ "Gimp",     NULL,       NULL,       0,            0,		    1,           -1 },
+	{ "firefox",  NULL,       NULL,       1 << 5,       0,		    0,           -1 },
+	{ "Lollypop", NULL,       NULL,       1 << 4,       0,          0,           -1 },
+	{ "vlc",      NULL,       NULL,       0,            1,          1,           -1 },
+	{ NULL,       NULL,       "musikcube",0 << 4,       0,          0,           -1 },
 };
 
 /* layout(s) */
@@ -97,6 +110,8 @@ static const StatusCmd statuscmds[] = {
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_brightness", 3 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_battery", 4 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_time", 5 },
+	{ "echo", 6 },
+	{ "echo", 7 },
 };
 
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
@@ -211,28 +226,28 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_4,                      3)
 	TAGKEYS(                        XK_5,                      4)
 	TAGKEYS(                        XK_6,                      5)
-	TAGKEYS(                        XK_7,                      6)
-	TAGKEYS(                        XK_8,                      7)
-	TAGKEYS(                        XK_9,                      8)
+	//TAGKEYS(                        XK_7,                      6)
+	//TAGKEYS(                        XK_8,                      7)
+	//TAGKEYS(                        XK_9,                      8)
   //{ MODKEY|ShiftMask,             XK_r,      self_restart,   {0} },
-	//{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
-  { MODKEY|ShiftMask,             XK_r,      quit,   				 {0} },
-  { MODKEY|ShiftMask,             XK_r,      spawn,   				 {.v = restartnotification} },
+  //{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY|ShiftMask,             XK_r,      quit,		   {0} },
+	{ MODKEY|ShiftMask,             XK_r,      spawn,   	   {.v = restartnotification} },
 	{ MODKEY|ShiftMask,             XK_q,      spawn,          {.v = killdwm } },
-	{ 0, 				                    XF86XK_AudioLowerVolume, spawn, {.v = downvol } },
-	{ 0, 				                    XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
-	{ 0, 				                    XF86XK_AudioMute, spawn,   {.v = mutevol } },
-	{ MODKEY, 			                XK_F1,     spawn,          {.v = mutevol} },
-	{ 0,				XF86XK_MonBrightnessUp,	       spawn,					 {.v = light_up} },
-	{ 0,				XF86XK_MonBrightnessDown,      spawn,          {.v = light_down} },
-	{ MODKEY|ShiftMask,		          XK_s,      spawn,	         {.v = scrotcmd} },
-	//{ MODKEY|ShiftMask|ControlMask,XK_s,     spawn,          {.v = scrotfoccmd} },
-	//{ MODKEY|ShiftMask|ControlMask,XK_s,     spawn,          SHCMD("sleep 1s;scrot --select") },
-	{ MODKEY|ShiftMask|ControlMask,	XK_s,      spawn,	         { .v = scrotselcmd } },
+	{ 0,							XF86XK_AudioLowerVolume, spawn, {.v = downvol } },
+	{ 0, 				            XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
+	{ 0, 				            XF86XK_AudioMute, spawn,   {.v = mutevol } },
+	{ MODKEY, 			            XK_F1,     spawn,          {.v = mutevol} },
+	{ 0,							XF86XK_MonBrightnessUp,	spawn, {.v = light_up} },
+	{ 0,							XF86XK_MonBrightnessDown, spawn, {.v = light_down} },
+	{ MODKEY|ShiftMask,		        XK_s,      spawn,	       {.v = scrotcmd} },
+  //{ MODKEY|ShiftMask|ControlMask,	XK_s,      spawn,          {.v = scrotfoccmd} },
+  //{ MODKEY|ShiftMask|ControlMask,	XK_s,	   spawn,          SHCMD("sleep 1s;scrot --select") },
+	{ MODKEY|ShiftMask|ControlMask,	XK_s,      spawn,	       { .v = scrotselcmd } },
 	{ Mod1Mask|ShiftMask,           XK_1,      spawn,          { .v = kblayout_us } },
-  { Mod1Mask|ShiftMask,           XK_2,      spawn,          { .v = kblayout_ru } },
-  { Mod1Mask|ShiftMask,           XK_3,      spawn,          { .v = kblayout_jp } },
-	{ Mod1Mask|ShiftMask,						0,				 spawn,					 { .v = kblayout_toggle } },
+	{ Mod1Mask|ShiftMask,           XK_2,      spawn,          { .v = kblayout_ru } },
+	{ Mod1Mask|ShiftMask,           XK_3,      spawn,          { .v = kblayout_jp } },
+	{ Mod1Mask|ShiftMask,			0,         spawn,          { .v = kblayout_toggle } },
 };
 
 /* button definitions */
@@ -246,7 +261,8 @@ static const Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
 	{ ClkStatusText,        0,              Button1,        spawn,          {.v = statuscmd } },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = statuscmd } },
+	//{ ClkStatusText,        0,              Button2,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button2,        togglesystray,  {0} },
 	{ ClkStatusText,        0,              Button3,        spawn,          {.v = statuscmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },

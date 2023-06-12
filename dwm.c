@@ -76,7 +76,7 @@
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeTest }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetSystemTray, NetSystemTrayOP, NetSystemTrayOrientation, NetSystemTrayOrientationHorz,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -273,6 +273,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglesystray(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -1123,6 +1124,7 @@ drawbar(Monitor *m)
 	int x, w, tw = 0, stw = 0;
 	int boxs = drw->fonts->h / 9;
 	int boxw = drw->fonts->h / 6 + 2;
+	//int boxw = drw->fonts->h / 6 + 6;
 	unsigned int i, occ = 0, urg = 0;
 	const char *tagtext;
 	Client *c;
@@ -1157,11 +1159,23 @@ drawbar(Monitor *m)
 		drw_setscheme(
 			drw,
 			scheme[
-				m->tagset[m->seltags] & 1 << i
-				? (SchemeSel) : SchemeNorm
+				//m->tagset[m->seltags] & 1 << i
+				//? (SchemeSel) : SchemeNorm
+				SchemeNorm
 			]
 		);
-		drw_text(drw, x, 0, w, bh, lrpad / 2, tagtext, urg & 1 << i);
+		//drw_text(drw, x, 0, w, bh, lrpad / 2, tagtext, urg & 1 << i);
+		drw_text(drw, x, 0, w, bh, lrpad / 2, tagtext, 0);
+		
+		/* if there are conflicts, just move these lines directly underneath both 'drw_setscheme' and 'drw_text' :) */
+		if (ulineall || m->tagset[m->seltags] & 1 << i) {
+			//drw_rect(drw, x + ulinepad, bh - ulinestroke - ulinevoffset, w - (ulinepad * 2), ulinestroke, 1, !(urg & 1 << i));
+			drw_setscheme(drw, scheme[SchemeSel]);
+			drw_rect(drw, x + ulinepad, bh - ulinestroke - ulinevoffset, w - (ulinepad * 2), ulinestroke, 1, 1);
+		} else if (urg & 1 << i) {
+			drw_setscheme(drw, scheme[SchemeNorm]);
+			drw_rect(drw, x + ulinepad, bh - ulinestroke - ulinevoffset, w - (ulinepad * 2), ulinestroke, 1, 0);
+		}
 		x += w;
 	}
 	w = TEXTW(m->ltsymbol);
@@ -1613,6 +1627,7 @@ movemouse(const Arg *arg)
 	Monitor *m;
 	XEvent ev;
 	Time lasttime = 0;
+	int g = selmon->gap->gappx;
 
 	if (!(c = selmon->sel))
 		return;
@@ -1641,14 +1656,14 @@ movemouse(const Arg *arg)
 
 			nx = ocx + (ev.xmotion.x - x);
 			ny = ocy + (ev.xmotion.y - y);
-			if (abs(selmon->wx - nx) < snap)
-				nx = selmon->wx;
+			if (abs(selmon->wx - nx + g) < snap)
+				nx = selmon->wx + snap;
 			else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < snap)
-				nx = selmon->wx + selmon->ww - WIDTH(c);
-			if (abs(selmon->wy - ny) < snap)
-				ny = selmon->wy;
+				nx = selmon->wx + selmon->ww - WIDTH(c) - snap;
+			if (abs(selmon->wy - ny + g) < snap)
+				ny = selmon->wy + snap;
 			else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < snap)
-				ny = selmon->wy + selmon->wh - HEIGHT(c);
+				ny = selmon->wy + selmon->wh - HEIGHT(c) - snap;
 			if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
 			&& (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
 				togglefloating(NULL);
@@ -2376,6 +2391,13 @@ togglefloating(const Arg *arg)
 	arrange(selmon);
 }
 
+/* Virashu 10/06/23 */
+void
+togglesystray(const Arg *arg)
+{
+	showsystray = showsystray == 1 ? 0 : 1;
+}
+
 void
 toggletag(const Arg *arg)
 {
@@ -2708,7 +2730,7 @@ void
 updatesystrayicongeom(Client *i, int w, int h)
 {
 	if (i) {
-		i->h = bh;
+		i->h = bh - systraypadding;
 		if (w == h)
 			i->w = bh;
 		else if (h == bh)
@@ -2722,7 +2744,7 @@ updatesystrayicongeom(Client *i, int w, int h)
 				i->w = bh;
 			else
 				i->w = (int) ((float)bh * ((float)i->w / (float)i->h));
-			i->h = bh;
+			i->h = bh - systraypadding;
 		}
 	}
 }
@@ -2780,7 +2802,9 @@ updatesystray(void)
 		// m->by -> m->by + vp
 		/* SEG 0 */
 		// m->by + vp + systraypadding  &  bh -> bh - systraypadding
-		systray->win = XCreateSimpleWindow(dpy, root, x, m->by + vp + systraypadding, w, bh - systraypadding, 0, 0, scheme[SchemeSel][ColBg].pixel);
+		// NO NEED TO PADDING, this is main systray windows
+		//systray->win = XCreateSimpleWindow(dpy, root, x, m->by + vertpadbar / 2 + systraypadding / 2, w, bh - vertpadbar - systraypadding, 0, 0, scheme[SchemeSel][ColBg].pixel);
+		systray->win = XCreateSimpleWindow(dpy, root, x, m->by, w, bh, 0, 0, scheme[SchemeSel][ColBg].pixel);
 		wa.event_mask        = ButtonPressMask | ExposureMask;
 		wa.override_redirect = True;
 		wa.background_pixel  = scheme[SchemeNorm][ColBg].pixel;
@@ -2814,7 +2838,7 @@ updatesystray(void)
 		// XMoveResizeWindow(dpy, i->win, i->x, vp, i->w, i->h);
 		// XMoveResizeWindow(dpy, i->win, i->x, 0, i->w, i->h);
 		/* Systray padding */
-		XMoveResizeWindow(dpy, i->win, i->x, systraypadding, i->w, i->h - systraypadding);
+		XMoveResizeWindow(dpy, i->win, i->x, vertpadbar / 2 + systraypadding / 2, i->w, i->h - vertpadbar - systraypadding);
 
 		w += i->w;
 		if (i->mon != m)
