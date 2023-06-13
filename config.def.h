@@ -3,6 +3,7 @@
 #include <X11/XF86keysym.h>
 #include "selfrestart.c"
 /* appearance */
+static unsigned int barborder = 4;
 static const unsigned int ulinepad	= 5;	/* horizontal padding between the underline and tag */
 static const unsigned int ulinestroke	= 4;	/* thickness / height of the underline */
 static const unsigned int ulinevoffset	= 4;	/* how far above the bottom of the bar the line should appear */
@@ -110,7 +111,7 @@ static const StatusCmd statuscmds[] = {
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_brightness", 3 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_battery", 4 },
 	{ "bash /home/virashu/scripts/volume_brightness.sh notify_time", 5 },
-	{ "echo", 6 },
+	{ "xsetroot -name fsignal:1", 6 },
 	{ "echo", 7 },
 };
 
@@ -271,4 +272,8 @@ static const Button buttons[] = {
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+};
+
+static Signal signals[] = {
+	{ 1,     togglesystray,     {0} },
 };

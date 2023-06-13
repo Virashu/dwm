@@ -126,6 +126,12 @@ typedef struct {
 } Key;
 
 typedef struct {
+	unsigned int signum;
+	void (*func)(const Arg *);
+	const Arg arg;
+} Signal;
+
+typedef struct {
 	const char *symbol;
 	void (*arrange)(Monitor *);
 } Layout;
@@ -233,6 +239,7 @@ static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
 static void incnmaster(const Arg *arg);
 static void keypress(XEvent *e);
+static int fake_signal(void);
 static void killclient(const Arg *arg);
 static void manage(Window w, XWindowAttributes *wa);
 static void mappingnotify(XEvent *e);
@@ -307,6 +314,7 @@ static void shiftview(const Arg *arg);
 static void view_adjacent(const Arg *arg);
 
 /* variables */
+static unsigned int barborder;
 static Systray *systray = NULL;
 static const char broken[] = "broken";
 static char stext[1024];
@@ -349,6 +357,7 @@ static Window root, wmcheckwin;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
+
 
 struct Pertag {
 	unsigned int curtag, prevtag; /* current and previous tag */
@@ -516,6 +525,7 @@ buttonpress(XEvent *e)
 	XButtonPressedEvent *ev = &e->xbutton;
 
 	padding -= sp * 2;
+	padding -= barborder * 2;
 
 	click = ClkRootWin;
 	/* focus monitor if necessary */
@@ -1032,7 +1042,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	//else
 	//	x = m->ww - w;
 
-	int padding = -2 * sp;
+	int padding = -2 * sp -2 * barborder;
 	if (showsystray && !systrayonleft)
 		padding += getsystraywidth();
 
@@ -1185,18 +1195,18 @@ drawbar(Monitor *m)
 
 	if ((w = m->ww - tw - stw - x) > bh) {
 		if (m->sel) {
-			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
+			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x - barborder;
 			//drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
 			drw_setscheme(drw, scheme[SchemeNorm]);
 			// centeredwindowname:
 			// - drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
 			// + drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
-			drw_text(drw, x, 0, w - 2 * sp, bh, mid, m->sel->name, 0);
+			drw_text(drw, x, 0, w - 2 * sp - 2 * barborder, bh, mid, m->sel->name, 0);
 			if (m->sel->isfloating)
 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
 		} else {
 			drw_setscheme(drw, scheme[SchemeNorm]);
-			drw_rect(drw, x, 0, w - 2 * sp, bh, 1, 1);
+			drw_rect(drw, x, 0, w - 2 * sp - 2 * barborder, bh, 1, 1);
 		}
 	}
 	drw_map(drw, m->barwin, 0, 0, m->ww - stw, bh);
@@ -1477,6 +1487,47 @@ keypress(XEvent *e)
 			keys[i].func(&(keys[i].arg));
 }
 
+int
+fake_signal(void)
+{
+	char fsignal[256];
+	char indicator[9] = "fsignal:";
+	char str_signum[16];
+	int i, v, signum;
+	size_t len_fsignal, len_indicator = strlen(indicator);
+
+	// Get root name property
+	if (gettextprop(root, XA_WM_NAME, fsignal, sizeof(fsignal))) {
+		len_fsignal = strlen(fsignal);
+
+		// Check if this is indeed a fake signal
+		if (len_indicator > len_fsignal ? 0 : strncmp(indicator, fsignal, len_indicator) == 0) {
+			memcpy(str_signum, &fsignal[len_indicator], len_fsignal - len_indicator);
+			str_signum[len_fsignal - len_indicator] = '\0';
+
+			// Convert string value into managable integer
+			for (i = signum = 0; i < strlen(str_signum); i++) {
+				v = str_signum[i] - '0';
+				if (v >= 0 && v <= 9) {
+					signum = signum * 10 + v;
+				}
+			}
+
+			// Check if a signal was found, and if so handle it
+			if (signum)
+				for (i = 0; i < LENGTH(signals); i++)
+					if (signum == signals[i].signum && signals[i].func)
+						signals[i].func(&(signals[i].arg));
+
+			// A fake signal was sent
+			return 1;
+		}
+	}
+
+	// No fake signal was sent, so proceed with update
+	return 0;
+}
+
 void
 killclient(const Arg *arg)
 {
@@ -1734,8 +1785,10 @@ propertynotify(XEvent *e)
 		updatesystray();
 	}
 
-    if ((ev->window == root) && (ev->atom == XA_WM_NAME))
-		updatestatus();
+  if ((ev->window == root) && (ev->atom == XA_WM_NAME)) {
+		if (!fake_signal())
+			updatestatus();
+	}
 	else if (ev->state == PropertyDelete)
 		return; /* ignore */
 	else if ((c = wintoclient(ev->window))) {
@@ -1809,7 +1862,7 @@ resizebarwin(Monitor *m) {
 	unsigned int w = m->ww;
 	if (showsystray && m == systraytomon(m) && !systrayonleft)
 		w -= getsystraywidth();
-	XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, w - 2 * sp, bh);
+	XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, w - 2 * sp - barborder * 2, bh);
 	// XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh);
 	// XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh);
 }
@@ -2429,7 +2482,17 @@ togglefloating(const Arg *arg)
 void
 togglesystray(const Arg *arg)
 {
-	showsystray = showsystray == 1 ? 0 : 1;
+	//showsystray = showsystray == 1 ? 0 : 1;
+	//system("dunstify hello");
+	if (showsystray == 1) {
+		showsystray = 0;
+    XUnmapWindow(dpy, systray->win);
+  } else {
+    showsystray = 1;
+  }
+  //updatesystray();
+		//updatestatus();
+		//drawbar(selmon);
 }
 
 void
@@ -2560,9 +2623,11 @@ updatebars(void)
 		w = m->ww;
 		if (showsystray && m == systraytomon(m))
 			w -= getsystraywidth();
-		m->barwin = XCreateWindow(dpy, root, m->wx + sp, m->by + vp, w - 2 * sp, bh, 0, DefaultDepth(dpy, screen),
+		m->barwin = XCreateWindow(dpy, root, m->wx + sp, m->by + vp , w - 2 * sp - barborder * 2, bh, barborder, DefaultDepth(dpy, screen),
 				CopyFromParent, DefaultVisual(dpy, screen),
 				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
+		// Virashu
+		XSetWindowBorder(dpy, m->barwin, scheme[SchemeSel][1].pixel);
 		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
 		if (showsystray && m == systraytomon(m))
 			XMapRaised(dpy, systray->win);
@@ -2829,7 +2894,7 @@ updatesystray(void)
 	if (systrayonleft)
 		x -= sw + lrpad / 2;
 	if (!systrayonleft)
-		x -= sp;
+		x -= ( sp + barborder );
 	if (!systray) {
 		/* init systray */
 		if (!(systray = (Systray *)calloc(1, sizeof(Systray))))
@@ -2839,7 +2904,7 @@ updatesystray(void)
 		// m->by + vp + systraypadding  &  bh -> bh - systraypadding
 		// NO NEED TO PADDING, this is main systray windows
 		//systray->win = XCreateSimpleWindow(dpy, root, x, m->by + vertpadbar / 2 + systraypadding / 2, w, bh - vertpadbar - systraypadding, 0, 0, scheme[SchemeSel][ColBg].pixel);
-		systray->win = XCreateSimpleWindow(dpy, root, x, m->by, w, bh, 0, 0, scheme[SchemeSel][ColBg].pixel);
+		systray->win = XCreateSimpleWindow(dpy, root, x - sp - barborder, m->by + barborder, w, bh, 0, 0, scheme[SchemeSel][ColBg].pixel);
 		wa.event_mask        = ButtonPressMask | ExposureMask;
 		wa.override_redirect = True;
 		wa.background_pixel  = scheme[SchemeNorm][ColBg].pixel;
@@ -2888,7 +2953,7 @@ updatesystray(void)
 	//XMoveResizeWindow(dpy, systray->win, x, m->by + systraypadding, w, bh - systraypadding);
 
 	/* SEG 3 */
-	wc.x = x; wc.y = m->by + vp; wc.width = w; wc.height = bh;
+	wc.x = x - barborder; wc.y = m->by + vp + barborder; wc.width = w; wc.height = bh;
 	// wc.x = x; wc.y = m->by; wc.width = w; wc.height = bh;
 	/* Systray padding */
 	//wc.x = x; wc.y = m->by + vp + systraypadding; wc.width = w; wc.height = bh - systraypadding;
@@ -2900,7 +2965,7 @@ updatesystray(void)
 	/* redraw background */
 	XSetForeground(dpy, drw->gc, scheme[SchemeNorm][ColBg].pixel);
 	// XFillRectangle(dpy, systray->win, drw->gc, 0, 0, w, bh);
-	XFillRectangle(dpy, systray->win, drw->gc, 0, vp, w, bh);
+	XFillRectangle(dpy, systray->win, drw->gc, 0, vp + barborder, w, bh);
 	XSync(dpy, False);
 }
 
