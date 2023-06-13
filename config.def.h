@@ -3,13 +3,13 @@
 #include <X11/XF86keysym.h>
 #include "selfrestart.c"
 /* appearance */
-static unsigned int barborder = 4;
+static int barborder = 4;
 static const unsigned int ulinepad	= 5;	/* horizontal padding between the underline and tag */
 static const unsigned int ulinestroke	= 4;	/* thickness / height of the underline */
 static const unsigned int ulinevoffset	= 4;	/* how far above the bottom of the bar the line should appear */
 static const int ulineall                  = 0;	/* 1 to show underline on all tags, 0 for just the active ones */
 static unsigned int borderpx                = 1;        /* border pixel of windows */
-static const Gap default_gap                = {.isgap = 1, .realgap = 10, .gappx = 10};
+static const Gap default_gap                = {.isgap = 1, .realgap = 16, .gappx = 16};
 static const unsigned int snap              = 16;       /* snap pixel */
 static const unsigned int systraypinning    = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayonleft     = 2;   /* 0: systray in the right corner, >0: systray on left of status text */
@@ -183,6 +183,7 @@ ResourcePref resources[] = {
 		{ "mfact",       	FLOAT,   &mfact },
 		{ "vertpad",		INTEGER, &vertpad },
 		{ "sidepad", 		INTEGER, &sidepad },
+	  { "barborder",          INTEGER, &barborder },
 };
 
 static const Key keys[] = {
@@ -276,4 +277,5 @@ static const Button buttons[] = {
 
 static Signal signals[] = {
 	{ 1,     togglesystray,     {0} },
+	{ 2,     togglebar,         {0} },
 };
