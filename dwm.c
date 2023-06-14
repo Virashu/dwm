@@ -2392,24 +2392,23 @@ view_adjacent(const Arg *arg)
 		}
 	}
 	*/
+	int ii;
 	if (arg->i > 0) {
-    for (int i = seltag + 1; i < seltag + LENGTH(tags) + 1; i++) {
-      if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+    for (int i = seltag + 1; i <= seltag + LENGTH(tags); i++) {
+			ii = i >= 0 ? i : i + LENGTH(tags);
+      if (hidevacant && !(occ & 1 << ii || selmon->tagset[selmon->seltags] & 1 << ii))
 				continue;
-			//if (i % LENGTH(tags) - seltag > 0) {
-				newseltag = i % LENGTH(tags);
-			info("");
-				break;
-			//}
+			newseltag = ii % LENGTH(tags);
+			break;
 		}
 	} else {
-		for (int i = seltag + LENGTH(tags) + 1; i > seltag; i--) {
-			if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+		for (int i = seltag + LENGTH(tags) - 1; i >= seltag; i--) {
+			ii = i >= 0 ? i : i + LENGTH(tags);
+			ii = ii % LENGTH(tags);
+			if (hidevacant && !(occ & 1 << ii || selmon->tagset[selmon->seltags] & 1 << ii))
 				continue;
-			//if (i % LENGTH(tags) - seltag < 0) {
-				newseltag = i % LENGTH(tags);
-				break;
-			//}
+			newseltag = ii % LENGTH(tags);
+			break;
 		}
 	}
 	//seltag = (seltag + arg->i) % n;
