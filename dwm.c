@@ -281,6 +281,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglehidevacant(const Arg *arg);
 static void togglesystray(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
@@ -314,6 +315,7 @@ static void shiftview(const Arg *arg);
 static void view_adjacent(const Arg *arg);
 
 /* variables */
+static int hidevacant;
 static int barborder;
 static Systray *systray = NULL;
 static const char broken[] = "broken";
@@ -548,9 +550,11 @@ buttonpress(XEvent *e)
 		if(ev->x < x) {
 			click = ClkButton;
 		} else {
-			do
+			do {
+				if (hidevacant && !(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+					continue;
 				x += TEXTW(occ & 1 << i ? alttags[i] : tags[i]);
-			while (ev->x >= x && ++i < LENGTH(tags));
+			} while (ev->x >= x && ++i < LENGTH(tags));
 			if (i < LENGTH(tags)) {
 				click = ClkTagBar;
 				arg.ui = 1 << i;
@@ -1044,7 +1048,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
 	int padding = -2 * sp -2 * barborder;
 	if (showsystray && !systrayonleft)
-		padding += getsystraywidth();
+		padding -= getsystraywidth();
 
 	x = m->ww - w + padding;
 
@@ -1165,6 +1169,9 @@ drawbar(Monitor *m)
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, buttonbar, 0);
 	for (i = 0; i < LENGTH(tags); i++) {
+		/* Do not draw the vacant tags */
+		if (hidevacant && !(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+			continue;
 		tagtext = occ & 1 << i ? alttags[i] : tags[i];
 		w = TEXTW(tagtext);
 		drw_setscheme(
@@ -1195,13 +1202,27 @@ drawbar(Monitor *m)
 
 	if ((w = m->ww - tw - stw - x) > bh) {
 		if (m->sel) {
-			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x - barborder;
+			int mid = (m->ww - TEXTW(m->sel->name)) / 2 - x;
+			int systraywidth = 0;
+			if (showsystray)
+				systraywidth = getsystraywidth();
+			//mid = mid > 0 ? mid : 0;
+			if (mid < 0 || mid > m->ww)
+				mid = lrpad / 2;
+			//info("Mid: %d", mid);
 			//drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
 			drw_setscheme(drw, scheme[SchemeNorm]);
 			// centeredwindowname:
 			// - drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
 			// + drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
-			drw_text(drw, x, 0, w - 2 * sp - 2 * barborder, bh, mid, m->sel->name, 0);
+
+			/* Altfonts (for title) */
+			drw_fontset_create(drw, altfonts, LENGTH(altfonts));
+
+			drw_text(drw, x, 0, w - 2 * sp - 2 * barborder - systraywidth, bh, mid - barborder, m->sel->name, 0);
+
+			/* Altfonts (for title) */
+			drw_fontset_create(drw, fonts, LENGTH(fonts));
 			if (m->sel->isfloating)
 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
 		} else {
@@ -2328,20 +2349,77 @@ view_adjacent(const Arg *arg)
 {
 	int i, curtags;
 	int seltag = 0;
+	int newseltag;
 	Arg a;
+	int lasttag;
+	unsigned int occ = 0;
+	Client *c;
+	int n = 0;
+
+	for (i = 0; i < LENGTH(tags); i++) {
+		if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+			continue;
+		n++;
+	}
+
+	for (c = selmon->clients; c; c = c->next)
+		occ |= c->tags;
 
 	curtags = selmon->tagset[selmon->seltags];
-	for(i = 0; i < LENGTH(tags); i++)
-		if(curtags & (1 << i)){
+	for (i = 0; i < LENGTH(tags); i++) {
+		if (curtags & (1 << i)) {
 			seltag = i;
 			break;
 		}
+	}
 
-	seltag = (seltag + arg->i) % (int)LENGTH(tags);
-	if(seltag < 0)
-		seltag += LENGTH(tags);
+	//seltag = (seltag + arg->i) % (int)LENGTH(tags);
+	//if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+	/*i = arg->i;
+	while (i) {
+		for (int j = 0; j < LENGTH(tags); j++) {
+			int tag = (seltag + j) % LENGTH(tags);
+	    if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+			  continue;
+			if (i > 0)
+				i--;
+			else
+				i++;
+			if (i == 0) {
+				seltag = tag;
+				break;
+			}
+		}
+	}
+	*/
+	if (arg->i > 0) {
+    for (int i = seltag + 1; i < seltag + LENGTH(tags) + 1; i++) {
+      if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+				continue;
+			//if (i % LENGTH(tags) - seltag > 0) {
+				newseltag = i % LENGTH(tags);
+			info("");
+				break;
+			//}
+		}
+	} else {
+		for (int i = seltag + LENGTH(tags) + 1; i > seltag; i--) {
+			if (hidevacant && !(occ & 1 << i || selmon->tagset[selmon->seltags] & 1 << i))
+				continue;
+			//if (i % LENGTH(tags) - seltag < 0) {
+				newseltag = i % LENGTH(tags);
+				break;
+			//}
+		}
+	}
+	//seltag = (seltag + arg->i) % n;
+	if(newseltag < 0)
+		newseltag += LENGTH(tags);
 
-	a.i = (1 << seltag);
+	if (seltag == newseltag)
+		return;
+
+	a.i = (1 << newseltag);
 	view(&a);
 }
 
@@ -2486,6 +2564,16 @@ togglefloating(const Arg *arg)
 		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
 			selmon->sel->w, selmon->sel->h, 0);
 	arrange(selmon);
+}
+
+void
+togglehidevacant(const Arg *arg)
+{
+	if (hidevacant) {
+		hidevacant = 0;
+	} else {
+		hidevacant = 1;
+	}
 }
 
 /* Virashu 10/06/23 */
