@@ -27,6 +27,7 @@ static int vertpad                          = 8; // bar from side of screen
 static int sidepad                          = 8; // bar from side of screen
 static const int blockpadding               = 1; /* 0 or 1 */
 static int ICONSIZE                         = vertpadbar + 20;
+static int showicon                         = 0;
 static char font[]                          = "MesloLGS NF:size=10"; // :pixelsize=10:antialias=true:autohint=true
 //static const char *fonts[]                  = { font, "MesloLGS NF:size=10", "FiraCode Nerd Font", "FiraCode Mono Nerd Font",
 //                                                "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font",

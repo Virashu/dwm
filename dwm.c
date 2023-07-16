@@ -1140,7 +1140,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
   if (!isCode) {
     //w = TEXTW(text) - lrpad;
-    w = status2dtextlength(text) - lrpad;
+    w = status2dtextlength(text);
     drw_text(drw, x, sssy, w, bh - ssey, 0, text, 0);
   }
 
@@ -1236,8 +1236,8 @@ drawbar(Monitor *m)
       /* Altfonts (for title) */
       drw_fontset_create(drw, altfonts, LENGTH(altfonts));
 
-      drw_text(drw, x, 0, w - 2 * sp - 2 * barborder - systraywidth, bh, mid - barborder + (m->sel->icon ? m->sel->icw + ICONSPACING : 0) / 2, m->sel->name, 0);
-      if (m->sel->icon) drw_pic(drw, x + mid - barborder - ICONSIZE / 2, (bh - m->sel->ich) / 2, m->sel->icw, m->sel->ich, m->sel->icon);
+      drw_text(drw, x, 0, w - 2 * sp - 2 * barborder - systraywidth, bh, mid - barborder + (m->sel->icon && showicon ? m->sel->icw + ICONSPACING : 0) / 2, m->sel->name, 0);
+      if (m->sel->icon && showicon) drw_pic(drw, x + mid - barborder - ICONSIZE / 2, (bh - m->sel->ich) / 2, m->sel->icw, m->sel->ich, m->sel->icon);
 
       /* Altfonts (for title) */
       drw_fontset_create(drw, fonts, LENGTH(fonts));
