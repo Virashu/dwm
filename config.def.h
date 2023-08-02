@@ -70,6 +70,7 @@ static const char *alttags[] = { "󰲠", "󰲢", "󰲤", "󰲦", "󰲨", "󰲪" 
 //static const char *alttags[] = { "󰎤", "󰎧", "󰎪", "󰎭", "󰎱", "󰎳" };
 
 static const char buttonbar[]       = "󰍜";
+//static const char buttonbar[]       = " 󱘊";
 
 static const Rule rules[] = {
   /* xprop(1):
@@ -120,15 +121,15 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
   "-nb", normbgcolor, "-nf", normfgcolor,
   "-sb", selbgcolor, "-sf", selfgcolor,
-  "-nhb", normbgcolor, "-nhf", selbgcolor,
-  "-shb", selbgcolor, "-shf", normfgcolor, NULL };
+  "-nhb", normbgcolor, "-nhf", normfgcolor,
+  "-shb", selbgcolor, "-shf", selfgcolor, NULL };
 static const char *termcmd[]  = { "kitty", NULL };
 static const char *alttermcmd[] = { "st", NULL };
 static const char *browsercmd[] = { "firefox", NULL };
 static const char *fmcmd[] = { "nautilus", NULL };
 
 static const StatusCmd statuscmds[] = {
-  { "notify-send Mouse$BUTTON", 11 },
+  { "notify-send Mouse$BUTTON", 31 },
   { "bash /home/virashu/scripts/toggle_setxkb_layout.sh", 1 },
   { "bash /home/virashu/scripts/volume_brightness.sh notify_volume", 2 },
   { "bash /home/virashu/scripts/volume_brightness.sh notify_brightness", 3 },
@@ -136,6 +137,10 @@ static const StatusCmd statuscmds[] = {
   { "bash /home/virashu/scripts/volume_brightness.sh notify_time", 5 },
   { "xsetroot -name fsignal:1;bash /home/virashu/scripts/trayicon.sh toggle", 6 },
   { "echo", 7 },
+  { "bash /home/virashu/scripts/mpris.sh pause", 8 },
+  { "bash /home/virashu/scripts/mpris.sh play", 9 },
+  { "bash /home/virashu/scripts/mpris.sh next", 10 },
+  { "bash /home/virashu/scripts/mpris.sh prev", 11 },
 };
 
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
