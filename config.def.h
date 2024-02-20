@@ -1,55 +1,58 @@
-/* See LICENSE file for copyright and license details. */
-
 #include <X11/XF86keysym.h>
 #include "selfrestart.c"
-/* appearance */
-static const int ICONSPACING                = 5;  /* Space between title and icon */
-static int hidevacant                       = 1;
-static int barborder                        = 4;
-static const unsigned int ulinepad          = 5;  /* horizontal padding between the underline and tag */
-static const unsigned int ulinestroke       = 4;  /* thickness / height of the underline */
-static const unsigned int ulinevoffset      = 4;  /* how far above the bottom of the bar the line should appear */
-static const int ulineall                   = 0;  /* 1 to show underline on all tags, 0 for just the active ones */
-static unsigned int borderpx                = 1;  /* border pixel of windows */
+
+/* Appearance */
 static const Gap default_gap                = {.isgap = 1, .realgap = 16, .gappx = 16};
 static unsigned int snap                    = 16; /* snap pixel */
+static unsigned int borderpx                = 1;  /* border pixel of windows */
+
+/* Systray */
+static int showsystray                      = 0;  /* 0 means no systray */
 static const unsigned int systraypinning    = 0;  /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
 static const unsigned int systrayonleft     = 2;  /* 0: systray in the right corner, >0: systray on left of status text */
 static const unsigned int systrayspacing    = 2;  /* systray spacing */
 static const unsigned int systraypadding    = 0;  /* pixels */
 static const int systraypinningfailfirst    = 1;  /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
-static int showsystray                      = 0;  /* 0 means no systray */
+
+/* Bar */
 static int showbar                          = 1;  /* 0 means no bar */
-static int topbar                           = 1;  /* 0 means bottom bar */
-static const int horizpadbar                = 0;  /* icons from side of bar */
+
+static const int horizpadbar                = 0; /* icons from side of bar */
 static const int vertpadbar                 = 20; /* icons from side of bar */
-static int vertpad                          = 8;  /* bar from side of screen */
 static int sidepad                          = 8;  /* bar from side of screen */
+static int vertpad                          = 8;  /* bar from side of screen */
+
+static int hidevacant                       = 1;
+static int barborder                        = 4;
+static int topbar                           = 1;  /* 0 means bottom bar */
+
+static const int ulineall                   = 0;  /* 1 to show underline on all tags, 0 for just the active ones */
+static const unsigned int ulinepad          = 5;  /* horizontal padding between the underline and tag */
+static const unsigned int ulinestroke       = 4;  /* thickness / height of the underline */
+static const unsigned int ulinevoffset      = 4;  /* how far above the bottom of the bar the line should appear */
+
+static const int ICONSPACING                = 5;  /* Space between title and icon */
+
 static const int blockpadding               = 1;  /* 0 or 1 */
+
 static int ICONSIZE                         = vertpadbar + 20;
 static int showicon                         = 0;
-static char font[]                          = "MesloLGS Nerd Font:size=10"; // :pixelsize=10:antialias=true:autohint=true
-//                                                "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF", "JetBrainsMono Nerd Font",
-//                                                "FiraCode Mono Nerd Font", "NotoMono Nerd Font", "Hack Nerd Font Mono", "MesloLGS NF",
-//                                                "JetBrainsMono Nerd Font", "Kochi Gothic", "Kochi Mincho",
-// "Hack Nerd Font Mono" "JetBrainsMono Nerd font"
-static const char *fonts[]                  = { font, "FiraCode Nerd Font", "Noto Color Emoji:size=10:antialias=true:autohint=true", "Kochi Gothic", "Kochi Mincho" };
-//static const char *fonts[]                  = { font };
-static const char *altfonts[]               = { "Natsuzemi Maru Gothic", font, "FiraCode Nerd Font", "Noto Color Emoji:size=10:antialias=true:autohint=true", "Kochi Mincho", "Kochi Gothic" };
-static const char dmenufont[]               = "MesloLGS NF";
+
+static char font[]                          = "MesloLGS Nerd Font:size=10:autohint=true";
+static const char *fonts[]                  = { "Fira Code:size=10", font, "FiraCode Nerd Font:size=10", "Noto Color Emoji:size=10:antialias=true:autohint=true", "Kochi Gothic:size=10", "monospace" };
+static const char *altfonts[]               = { "Natsuzemi Maru Gothic", font, "FiraCode Nerd Font", "Noto Color Emoji:size=10:autohint=true", "Kochi Gothic", "monospace" };
+static const char dmenufont[]               = "MesloLGS Nerd Font";
+
 static char normbgcolor[]                   = "#222222";
 static char normbordercolor[]               = "#444444";
 static char normfgcolor[]                   = "#bbbbbb";
 static char selfgcolor[]                    = "#eeeeee";
 static char selbgcolor[]                    = "#005577";
 static char selbordercolor[]                = "#005577";
-static char red[] = "#ff0000";
-static char green[] = "#ff0000";
 static char *colors[][3]                    = {
   /*               fg             bg            border   */
   [SchemeNorm] = { normfgcolor,   normbgcolor,  normbordercolor },
   [SchemeSel]  = { selfgcolor,    selbgcolor,   selbordercolor  },
-  [SchemeTest] = { red,           green,        normbgcolor     },
 };
 
 /* tagging */
@@ -81,6 +84,8 @@ static const Rule rules[] = {
   { NULL,       NULL,       "musikcube",0 << 4,       0,          0,           -1,          0 },
   { "firefox",  NULL,       "Picture-in-Picture", 0,  1,          1,           -1,          0 },
   { "komorebi", NULL,       NULL,       0,            0,          0,           -1,          3 },
+  { "chromium", NULL,       NULL,       1 << 4,       0,          0,           -1,          0 },
+  { "crx_eikjhbkpemdappjfcmdeeeamdpkgabmk", NULL, NULL, 1<<4, 0,  0,           -1,          0 }, // Soundcloud (chrome app)
 };
 
 /* layout(s) */
@@ -120,11 +125,11 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
   "-nhb", normbgcolor, "-nhf", normfgcolor,
   "-shb", selbgcolor, "-shf", selfgcolor, NULL };
 */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
-static const char *termcmd[]  = { "kitty", NULL };
+static const char *dmenucmd[]   = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
+static const char *termcmd[]    = { "kitty", NULL };
 static const char *alttermcmd[] = { "st", NULL };
 static const char *browsercmd[] = { "firefox", NULL };
-static const char *fmcmd[] = { "nautilus", NULL };
+static const char *fmcmd[]      = { "nautilus", NULL };
 
 static const StatusCmd statuscmds[] = {
   { "notify-send Mouse$BUTTON", 31 },
@@ -139,44 +144,23 @@ static const StatusCmd statuscmds[] = {
   { "bash /home/virashu/scripts/mpris.sh play", 9 },
   { "bash /home/virashu/scripts/mpris.sh next", 10 },
   { "bash /home/virashu/scripts/mpris.sh prev", 11 },
+  { "bash /home/virashu/scripts/mpris.sh toggle", 12 },
 };
 
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
-/* OLD
-static const char *upvol[]    = { "/usr/bin/pactl", "set-sink-volume", "0", "+5%",  NULL};
-static const char *downvol[]  = { "/usr/bin/pactl", "set-sink-volume", "0", "-5%",  NULL};
-static const char *mutevol[]  = { "/usr/bin/pactl", "set-sink-mute", "0", "toggle", NULL};
-
-static const char *light_up[] = { "/usr/bin/light", "-A", "5", NULL };
-static const char *light_down[] = { "/usr/bin/light", "-U", "5", NULL};
-*/
-
-/* NEW */
 static const char *upvol[]      = { "/usr/bin/bash", "/home/virashu/scripts/volume_brightness.sh", "volume_up", NULL };
 static const char *downvol[]    = { "/usr/bin/bash", "/home/virashu/scripts/volume_brightness.sh", "volume_down", NULL };
 static const char *mutevol[]    = { "/usr/bin/bash", "/home/virashu/scripts/volume_brightness.sh", "volume_mute", NULL };
 static const char *light_up[]   = { "/usr/bin/bash", "/home/virashu/scripts/volume_brightness.sh", "brightness_up", NULL };
 static const char *light_down[] = { "/usr/bin/bash", "/home/virashu/scripts/volume_brightness.sh", "brightness_down", NULL };
 
-static const char *menubutton[] = { "/usr/bin/bash", "/home/virashu/dev/git/scripts/xmenu.sh", NULL };
-static const char *menubuttonalt[] = { "/usr/bin/bash", "/home/virashu/dev/git/scripts/xdg-auto.sh", NULL};
+static const char *menubutton[] = { "/usr/bin/bash", "/home/virashu/scripts/xmenu.sh", NULL };
+static const char *menubuttonalt[] = { "/usr/bin/bash", "/home/virashu/scripts/xdg-auto.sh", NULL};
 
 static const char *xwinclass[] = { "bash", "/home/virashu/scripts/xwinprop.sh", NULL };
 
 #define DWMPRINT 0x0000ff61
-
-/*
-static const char *scrotcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", NULL};
-static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--focused", NULL };
-static const char *scrotselcmd[] = { "/usr/bin/scrot", "-d3", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", "--select", NULL};
-*/
-/* TODO: Make a script for screenshots and notifying! */
-/*
-static const char *scrotcmd[] = { "/usr/bin/scrot", "-d0", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", ";", "dunstify", "'screenshot taken'", NULL};
-static const char *scrotfoccmd[] = { "/usr/bin/scrot", "--focused", NULL };
-static const char *scrotselcmd[] = { "/usr/bin/scrot", "-d0", "/home/virashu/Pictures/screenshots/%Y-%m-%d-%s_$wx$h.jpg", "--select", NULL};
-*/
 
 static const char *scrotcmd[] = { "/bin/bash", "/home/virashu/scripts/screenshot.sh", "normal", NULL };
 static const char *scrotfoccmd[] = { "/bin/bash", "/home/virashu/scripts/screenshot.sh", "focused", NULL };

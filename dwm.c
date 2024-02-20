@@ -221,6 +221,7 @@ static void clientmessage(XEvent *e);
 static void configure(Client *c);
 static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
+static void copyvalidchars(char *text, char *rawtext);
 static Monitor *createmon(void);
 static void destroynotify(XEvent *e);
 static void detach(Client *c);
@@ -283,6 +284,7 @@ static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
+static int status2dtextlength(char *text);
 static Monitor *systraytomon(Monitor *m);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
@@ -322,7 +324,6 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
 static void zoom(const Arg *arg);
 static void load_xresources(void);
 static void resource_load(XrmDatabase db, char *name, enum resource_type rtype, void *dst);
-static void shiftview(const Arg *arg);
 static void view_adjacent(const Arg *arg);
 
 /* variables */
@@ -578,27 +579,6 @@ buttonpress(XEvent *e)
       } else if (ev->x < x + TEXTW(selmon->ltsymbol))
         click = ClkLtSymbol;
       else if (ev->x > selmon->ww - statusw + padding) {
-         // click = ClkStatusText;
-
-        // x = selmon->ww - statusw + padding;
-        // // x += lrpad / 2;
-
-        // char *text, *s, ch;
-        // *lastbutton = '0' + ev->button;
-
-        // statuscmdn = 0;
-        // for (text = s = stext; *s && x <= ev->x; s++) {
-        //   if ((unsigned char)(*s) < ' ') {
-        //     ch = *s;
-        //     *s = '\0';
-        //     x += TEXTW(text) - lrpad;
-        //     *s = ch;
-        //     text = s + 1;
-        //     if (x >= ev->x)
-        //       break;
-        //     statuscmdn = ch;
-        //   }
-        // }
         click = ClkStatusText;
         //xc = selmon->ww - statusw + padding / 2;
         //xc = selmon->ww - statusw;
@@ -1989,7 +1969,6 @@ resizebarwin(Monitor *m) {
     w -= getsystraywidth();
   XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, w - 2 * sp - barborder * 2, bh);
   // XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh);
-  // XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh);
 }
 
 void
@@ -2512,6 +2491,7 @@ seturgent(Client *c, int urg)
  * @param: "arg->i" stores the number of tags to shift right (positive value)
  *          or left (negative value)
  */
+/*
 void
 shiftview(const Arg *arg)
 {
@@ -2527,15 +2507,15 @@ shiftview(const Arg *arg)
 
   view(&shifted);
 }
+*/
 
 void
 view_adjacent(const Arg *arg)
 {
   int i, curtags;
   int seltag = 0;
-  int newseltag;
+  int newseltag = seltag;
   Arg a;
-  int lasttag;
   unsigned int occ = 0;
   Client *c;
   int n = 0;
@@ -2720,19 +2700,25 @@ togglebar(const Arg *arg)
 {
   selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
   updatebarpos(selmon);
-  //XMoveResizeWindow(dpy, selmon->barwin, selmon->wx + sp, selmon->by + vp, selmon->ww - 2 * sp, bh);
   resizebarwin(selmon);
+  
+  // Update systray position
   if (showsystray) {
     XWindowChanges wc;
     if (!selmon->showbar)
-      wc.y = -bh;
-    else if (selmon->showbar) {
-      wc.y = 0 + vp;
-      if (!selmon->topbar)
-        wc.y = selmon->mh - bh + vp;
+      if (selmon->topbar)
+        wc.y = -bh - vertpad;
+      else
+        wc.y = selmon->mh + bh + vertpad;
+    else {
+      if (selmon->topbar)
+        wc.y = vertpad;
+      else
+        wc.y = selmon->mh - bh - vertpad;
     }
     XConfigureWindow(dpy, systray->win, CWY, &wc);
   }
+
   arrange(selmon);
 }
 
@@ -2942,12 +2928,21 @@ updatebarpos(Monitor *m)
 {
   m->wy = m->my;
   m->wh = m->mh;
+
   if (m->showbar) {
-    m->wh = m->wh - vertpad - bh;
-    m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;
-    m->wy = m->topbar ? m->wy + bh + vp : m->wy;
-  } else
-    m->by = -bh - vp;
+    m->wh = m->mh - vertpad - bh;
+    if (m->topbar) {
+      m->by = m->my;
+      m->wy = m->my + bh + vertpad;
+    } else {
+      m->by = m->mh - bh - vertpad;
+    }
+  } else {
+    if (m->topbar)
+      m->by = 0     - bh - vertpad;
+    else
+      m->by = m->mh + bh + vertpad;
+  }
 }
 
 void
