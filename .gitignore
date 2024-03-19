@@ -51,5 +51,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# DWM binaries
+# DWM files
 dwm
+config.h
