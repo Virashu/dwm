@@ -1,5 +1,4 @@
 #include <X11/XF86keysym.h>
-#include "selfrestart.c"
 
 /* Appearance */
 static const Gap default_gap                = {.isgap = 1, .realgap = 16, .gappx = 16};

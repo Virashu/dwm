@@ -4,7 +4,7 @@
 include config.mk
 
 SRC = drw.c dwm.c util.c
-OBJ = ${SRC:.c=.o}
+OBJ = ${SRC:%.c=build/%.o}
 
 all: options dwm
 
@@ -16,6 +16,10 @@ options:
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
+
+build/%.o: %.c
+	mkdir -p build
+	${CC} ${CFLAGS} ${CPPFLAGS} -c -o $@ $<
 
 ${OBJ}: config.h config.mk
 

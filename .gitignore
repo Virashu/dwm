@@ -54,3 +54,4 @@ dkms.conf
 # DWM files
 dwm
 config.h
+build/

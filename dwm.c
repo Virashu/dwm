@@ -2827,10 +2827,10 @@ toggleview(const Arg *arg)
 void
 freeicon(Client *c)
 {
-	if (c->icon) {
-		XRenderFreePicture(dpy, c->icon);
-		c->icon = None;
-	}
+  if (c->icon) {
+    XRenderFreePicture(dpy, c->icon);
+    c->icon = None;
+  }
 }
 
 void
