@@ -174,6 +174,8 @@ static const char *kblayout_toggle[] = { "bash", "/home/virashu/scripts/toggle_s
 static const char *killdwm[] = { "pkill", "dwm", NULL };
 static const char *restartnotification[] = { "bash", "-c", "dunstify -i /usr/share/icons/Papirus-Dark/24x24/actions/vm-restart.svg -t 2000 dwm restarted", NULL };
 
+static const char *suspend_cmd[] = { "systemctl", "suspend", NULL };
+
 /*
  * Xresources preferences to load at startup
  */
@@ -249,6 +251,7 @@ static const Key keys[] = {
   { MODKEY|ShiftMask,             XK_r,      quit,           {0} },
   { MODKEY|ShiftMask,             XK_r,      spawn,          {.v = restartnotification } },
   { MODKEY|ShiftMask,             XK_q,      spawn,          {.v = killdwm } },
+  { MODKEY|ControlMask,           XK_s,      spawn,          {.v = suspend_cmd} },
   { 0,                            XF86XK_AudioLowerVolume, spawn, {.v = downvol } },
   { 0,                            XF86XK_AudioRaiseVolume, spawn, {.v = upvol } },
   { 0,                            XF86XK_AudioMute, spawn,   {.v = mutevol } },
