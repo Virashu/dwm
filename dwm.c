@@ -373,6 +373,9 @@ static Drw *drw;
 static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
 
+static Fnt* base_font_set;
+static Fnt* alt_font_set;
+
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -652,6 +655,8 @@ status2dtextlength(char* stext)
   }
   if (!isCode)
     w += TEXTW(text) - lrpad;
+
+  free(text);
   return w;
 }
 
@@ -708,6 +713,7 @@ cleanup(void)
     free(scheme[i]);
   free(scheme);
   XDestroyWindow(dpy, wmcheckwin);
+  drw_fontset_free(alt_font_set);
   drw_free(drw);
   XSync(dpy, False);
   XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
@@ -1212,14 +1218,14 @@ drawbar(Monitor *m)
       // - drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
       // + drw_text(drw, x, 0, w, bh, mid, m->sel->name, 0);
 
-      /* Altfonts (for title) */
-      drw_fontset_create(drw, altfonts, LENGTH(altfonts));
-
+      /* Set alternative fonts for title */
+      drw_setfontset(drw, alt_font_set);
       drw_text(drw, x, 0, w - 2 * sp - 2 * barborder - systraywidth, bh, mid - barborder + (m->sel->icon && showicon ? m->sel->icw + ICONSPACING : 0) / 2, m->sel->name, 0);
       if (m->sel->icon && showicon) drw_pic(drw, x + mid - barborder - ICONSIZE / 2, (bh - m->sel->ich) / 2, m->sel->icw, m->sel->ich, m->sel->icon);
 
-      /* Altfonts (for title) */
-      drw_fontset_create(drw, fonts, LENGTH(fonts));
+      /* Set standard fonts */
+      drw_setfontset(drw, base_font_set);
+
       if (m->sel->isfloating)
         drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
     } else {
@@ -2417,8 +2423,11 @@ setup(void)
   sh = DisplayHeight(dpy, screen);
   root = RootWindow(dpy, screen);
   drw = drw_create(dpy, screen, root, sw, sh);
-  if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
+  if (!(base_font_set = drw_fontset_create(drw, fonts, LENGTH(fonts))))
     die("no fonts could be loaded.");
+  if (!(alt_font_set = drw_fontset_create(drw, altfonts, LENGTH(fonts))))
+    die("no alt fonts could be loaded.");
+  drw_setfontset(drw, base_font_set);
   lrpad = drw->fonts->h;
   bh = drw->fonts->h + vertpadbar;
   updategeom();

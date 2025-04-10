@@ -1,5 +1,7 @@
 #include <X11/XF86keysym.h>
 
+#define FONT_SIZE "28"
+
 /* Appearance */
 static const Gap default_gap                = {.isgap = 1, .realgap = 16, .gappx = 16};
 static unsigned int snap                    = 16; /* snap pixel */
@@ -37,9 +39,26 @@ static const int blockpadding               = 1;  /* 0 or 1 */
 static int ICONSIZE                         = vertpadbar + 20;
 static int showicon                         = 0;
 
-static char font[]                          = "MesloLGS Nerd Font:size=10:autohint=true";
-static const char *fonts[]                  = { "Fira Code:size=10", font, "FiraCode Nerd Font:size=10", "Noto Color Emoji:size=10:antialias=true:autohint=true", "Kochi Gothic:size=10", "monospace" };
-static const char *altfonts[]               = { "Natsuzemi Maru Gothic", font, "FiraCode Nerd Font", "Noto Color Emoji:size=10:autohint=true", "Kochi Gothic", "monospace" };
+static char font[] = "MesloLGS Nerd Font:pixelsize=" FONT_SIZE ":autohint=true";
+
+static const char *fonts[] = {
+  "Fira Code:pixelsize=" FONT_SIZE,
+  font,
+  "FiraCode Nerd Font:pixelsize=" FONT_SIZE,
+  "Noto Color Emoji:pixelsize=" FONT_SIZE ":antialias=true:autohint=true",
+  "Kochi Gothic:pixelsize=" FONT_SIZE,
+  "monospace"
+};
+
+static const char *altfonts[]               = {
+  "Natsuzemi Maru Gothic",
+  font,
+  "FiraCode Nerd Font",
+  "Noto Color Emoji:size=10:autohint=true",
+  "Kochi Gothic",
+  "monospace"
+};
+
 static const char dmenufont[]               = "MesloLGS Nerd Font";
 
 static char normbgcolor[]                   = "#222222";
@@ -69,6 +88,7 @@ static const char *alttags[] = { "󰲠", "󰲢", "󰲤", "󰲦", "󰲨", "󰲪" 
 
 static const char buttonbar[]       = "󰍜";
 //static const char buttonbar[]       = " 󱘊";
+
 
 static const Rule rules[] = {
   /* xprop(1):
@@ -127,7 +147,7 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static const char *dmenucmd[]   = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
 static const char *termcmd[]    = { "kitty", NULL };
 static const char *alttermcmd[] = { "st", NULL };
-static const char *browsercmd[] = { "firefox", NULL };
+static const char *browsercmd[] = { "bash", "-c", "(command -v zen-browser 2>&1 >/dev/null) && (zen-browser) || (firefox)", NULL };
 static const char *fmcmd[]      = { "nautilus", NULL };
 
 static const StatusCmd statuscmds[] = {
